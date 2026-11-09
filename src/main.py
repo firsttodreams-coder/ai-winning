@@ -2,7 +2,7 @@
 from workers import WorkerEntrypoint
 import asgi
 
-from src.api.main import app
+from api.main import app
 
 
 class Default(WorkerEntrypoint):
