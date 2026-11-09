@@ -16,6 +16,8 @@ Included:
 - Right-to-left Urdu and left-to-right English layouts
 - Country-specific city lists for the supported markets
 - Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
+- Personal product research workspace: evaluate and save product candidates with your own evidence URL, market, cost inputs, weighted score, and estimated per-unit profit
+- Research records saved locally in the current browser, with CSV export and delete controls
 - Basic offline cache for the app shell through a service worker
 - MIT license
 - Initial FastAPI backend with health, scoring-model, product-scoring, and product-economics endpoints
@@ -24,7 +26,7 @@ Included:
 
 ## Important data note
 
-The current product list and sample scores are static demonstration data. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
+The current product list and sample scores are static demonstration data. The personal research workspace evaluates values and evidence entered by the user; saved records remain in that browser's local storage and can be exported as CSV. It does not synchronize across devices. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
 
 ## Run
 
