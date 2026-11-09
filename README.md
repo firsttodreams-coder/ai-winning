@@ -29,6 +29,11 @@ The current product list and sample scores are static demonstration data. They a
 
 Open `index.html` in a modern browser, or publish the repository with GitHub Pages. Use the language button in the top-right area to switch between English and Urdu; the selection is saved in the browser. For installation, open the deployed HTTPS site in a supported mobile browser and use its browser menu's install/add-to-home-screen option. The service worker requires HTTPS or localhost.
 
+
+## GitHub Pages setup
+
+The deployment workflow is ready, but the GitHub Pages site is not enabled yet. The connected GitHub integration cannot create the Pages site because GitHub denies that administrative permission. The repository owner must do this one-time step: open **Settings → Pages**, choose **GitHub Actions** as the build and deployment source, and save. Subsequent pushes to `main` will deploy automatically.
+
 ## Backend API
 
 A first FastAPI scoring service is available in `api/main.py`.
