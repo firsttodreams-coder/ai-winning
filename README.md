@@ -20,6 +20,7 @@ Included:
 - Research records saved locally in the current browser, with CSV export and delete controls
 - Country-aware free research shortcuts for Google Trends, Daraz, Amazon regional stores, eBay sold listings, and web search; links open external sites and do not claim to import live metrics
 - Market research workspace that builds category/country search links and product-specific supplier searches for Alibaba, AliExpress, CJdropshipping, 1688, Daraz, Amazon and eBay
+- Curated local wholesale and dropshipping supplier directory focused on Pakistan, UAE and Saudi Arabia, with supplier website links, service-model labels, and English/Urdu notes; listings are clearly presented as research leads, not endorsements or verified live offers
 - Product-specific demand and competition research shortcuts, with explicit disclosure that city-level sales, live competition counts, supplier prices, and sales volumes are not yet automatically verified
 - Basic offline cache for the app shell through a service worker
 - MIT license
@@ -29,7 +30,7 @@ Included:
 
 ## Important data note
 
-The current product list and sample scores are static demonstration data. The market research workspace generates direct search links to third-party sites; it does not scrape those sites, fetch sales volumes, verify supplier offers, or calculate live competition. City is a search hint only; most public trend and marketplace sources are country-level. The personal research workspace evaluates values and evidence entered by the user; saved records remain in that browser's local storage and can be exported as CSV. It does not synchronize across devices. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
+The current product list and sample scores are static demonstration data. The local supplier directory is a curated set of public supplier/marketplace links for Pakistan, UAE and Saudi Arabia; it does not certify a supplier, guarantee dropshipping availability for every product, or automatically verify current prices, stock, fees, delivery coverage, or return terms. The market research workspace generates direct search links to third-party sites; it does not scrape those sites, fetch sales volumes, verify supplier offers, or calculate live competition. City is a search hint only; most public trend and marketplace sources are country-level. The personal research workspace evaluates values and evidence entered by the user; saved records remain in that browser's local storage and can be exported as CSV. It does not synchronize across devices. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
 
 ## Run
 
