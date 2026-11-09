@@ -12,6 +12,9 @@ Included:
 - Category and estimated-budget filters
 - Clearly labelled sample product ideas and demo scores
 - Installable Progressive Web App (PWA) manifest and app icon
+- English and Urdu interface with an in-app language switch
+- Right-to-left Urdu and left-to-right English layouts
+- Country-specific city lists for the supported markets
 - Basic offline cache for the app shell through a service worker
 
 ## Important data note
@@ -20,7 +23,7 @@ The current product list and scores are static demonstration data. They are not 
 
 ## Run
 
-Open `index.html` in a modern browser, or publish the repository with GitHub Pages. For installation, open the deployed HTTPS site in a supported mobile browser and use its browser menu's install/add-to-home-screen option. The service worker requires HTTPS or localhost.
+Open `index.html` in a modern browser, or publish the repository with GitHub Pages. Use the language button in the top-right area to switch between English and Urdu; the selection is saved in the browser. For installation, open the deployed HTTPS site in a supported mobile browser and use its browser menu's install/add-to-home-screen option. The service worker requires HTTPS or localhost.
 
 ## Planned development
 
