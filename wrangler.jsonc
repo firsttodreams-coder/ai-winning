@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-winning-product-finder-api",
+  "main": "src/main.py",
+  "compatibility_date": "2026-11-08",
+  "compatibility_flags": ["python_workers"]
+}
