@@ -18,6 +18,7 @@ Included:
 - Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
 - Personal product research workspace: evaluate and save product candidates with your own evidence URL, market, cost inputs, weighted score, and estimated per-unit profit
 - Research records saved locally in the current browser, with CSV export and delete controls
+- Country-aware free research shortcuts for Google Trends, Daraz, Amazon regional stores, eBay sold listings, and web search; links open external sites and do not claim to import live metrics
 - Basic offline cache for the app shell through a service worker
 - MIT license
 - Initial FastAPI backend with health, scoring-model, product-scoring, and product-economics endpoints
