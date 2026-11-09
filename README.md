@@ -12,11 +12,14 @@ Included:
 - Category and estimated-budget filters
 - Clearly labelled sample product ideas and demo scores
 - Installable Progressive Web App (PWA) manifest and app icon
-- English and Urdu interface with an in-app language switch
+- English and Urdu interface with an in-app language switch, translated product names, and RTL Urdu layout
 - Right-to-left Urdu and left-to-right English layouts
 - Country-specific city lists for the supported markets
 - Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
 - Basic offline cache for the app shell through a service worker
+- MIT license
+- Initial FastAPI backend with health, scoring-model, and product-scoring endpoints
+- Automated API tests and documented local setup
 
 ## Important data note
 
@@ -26,15 +29,24 @@ The current product list and sample scores are static demonstration data. They a
 
 Open `index.html` in a modern browser, or publish the repository with GitHub Pages. Use the language button in the top-right area to switch between English and Urdu; the selection is saved in the browser. For installation, open the deployed HTTPS site in a supported mobile browser and use its browser menu's install/add-to-home-screen option. The service worker requires HTTPS or localhost.
 
+## Backend API
+
+A first FastAPI scoring service is available in `api/main.py`.
+
+- `GET /health` — service health check
+- `GET /api/v1/scoring-model` — transparent scoring weights
+- `POST /api/v1/score` — score five user-provided signals from 1 to 10
+
+Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API does not yet fetch live marketplace data.
+
 ## Planned development
 
-1. Add a real data-source layer using permitted public/free data sources.
-2. Add transparent product research metrics and evidence links.
-3. Add optional AI analysis through a provider chosen by the project owner, with a free/local mode where feasible.
-4. Add saved searches, comparison, and export.
-5. Add tests, accessibility improvements, and deployment instructions.
-6. Add a real backend and secure server-side API integration before handling private credentials.
+1. Connect the frontend calculator to the API after selecting a backend host.
+2. Add a real data-source layer using permitted public/free sources and source timestamps.
+3. Add evidence-backed product metrics and country-aware currency/shipping filters.
+4. Add optional AI-assisted analysis with citations and a no-key/local mode where feasible.
+5. Add saved searches, comparison, export, and further integration tests.
 
 ## License
 
-No license has been selected yet. Choose an open-source license before inviting outside contributions or redistributing the project.
+This project is licensed under the MIT License; see `LICENSE`.
