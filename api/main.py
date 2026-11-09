@@ -29,6 +29,16 @@ class OpportunitySignals(BaseModel):
     trend: int = Field(ge=1, le=10, description="Strength of the observed trend")
 
 
+class ProductEconomics(BaseModel):
+    currency: str = Field(default="USD", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    selling_price: float = Field(gt=0, le=100000000)
+    product_cost: float = Field(ge=0, le=100000000)
+    shipping_cost: float = Field(ge=0, le=100000000)
+    platform_fee_percent: float = Field(default=0, ge=0, le=100)
+    marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    returns_allowance: float = Field(default=0, ge=0, le=100000000)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "ai-winning-product-finder-api"}
@@ -41,6 +51,42 @@ def scoring_model():
         "scale": {"minimum": 1, "maximum": 10},
         "weights": WEIGHTS,
         "note": "Scores are estimates based only on supplied inputs, not live market evidence.",
+    }
+
+
+@app.post("/api/v1/product-economics")
+def product_economics(data: ProductEconomics):
+    """Estimate per-unit profit from costs supplied by the user."""
+    values = data.model_dump()
+    fee = values["selling_price"] * values["platform_fee_percent"] / 100
+    total_cost = (
+        values["product_cost"]
+        + values["shipping_cost"]
+        + fee
+        + values["marketing_cost"]
+        + values["returns_allowance"]
+    )
+    profit = values["selling_price"] - total_cost
+    margin = (profit / values["selling_price"]) * 100
+    invested_cost = total_cost
+    roi = (profit / invested_cost) * 100 if invested_cost else None
+    fixed_costs = (
+        values["product_cost"]
+        + values["shipping_cost"]
+        + values["marketing_cost"]
+        + values["returns_allowance"]
+    )
+    fee_rate = values["platform_fee_percent"] / 100
+    break_even = fixed_costs / (1 - fee_rate) if fee_rate < 1 else None
+    return {
+        "currency": values["currency"],
+        "platform_fee": round(fee, 2),
+        "total_cost": round(total_cost, 2),
+        "profit_per_unit": round(profit, 2),
+        "profit_margin_percent": round(margin, 2),
+        "roi_percent": round(roi, 2) if roi is not None else None,
+        "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
+        "note": "Estimate based only on costs and price supplied by the user; taxes and other costs may apply.",
     }
 
 
