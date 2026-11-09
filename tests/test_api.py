@@ -56,3 +56,16 @@ def test_product_economics_rejects_invalid_currency_and_price():
         json={"currency": "US", "selling_price": 0, "product_cost": 10, "shipping_cost": 1},
     )
     assert response.status_code == 422
+
+
+def test_frontend_origin_is_allowed_by_cors():
+    response = client.options(
+        "/api/v1/score",
+        headers={
+            "Origin": "https://firsttodreams-coder.github.io",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://firsttodreams-coder.github.io"
