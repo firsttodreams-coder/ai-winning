@@ -1,50 +1,73 @@
 <!doctype html>
-<html lang="ur" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827"><link rel="manifest" href="./manifest.json"><link rel="icon" href="./icon.svg" type="image/svg+xml"><title>AI Winning Product Finder</title>
+<meta name="theme-color" content="#101827"><link rel="manifest" href="./manifest.json"><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>AI Winning Product Finder</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#26364e;--muted:#9aabc2;--green:#42d392;--blue:#6ea8fe}
+:root{color-scheme:dark;--panel:#121d30;--line:#26364e;--muted:#9aabc2;--green:#42d392}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#0b1220,#111d32);color:#edf4ff;font-family:system-ui,-apple-system,"Noto Sans Arabic",sans-serif;min-height:100vh}
-header{padding:25px 5%;border-bottom:1px solid var(--line);background:#0b1220cc}header h1{margin:0;font-size:clamp(24px,4vw,38px)}header p{color:var(--muted);margin:8px 0 0}
-main{max-width:1200px;margin:28px auto;padding:0 18px}.notice{border:1px solid #80652a;background:#332a17;color:#ffe2a1;padding:13px 16px;border-radius:12px;margin-bottom:20px;font-size:14px}
+header{padding:22px 5%;border-bottom:1px solid var(--line);background:#0b1220cc;display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}header h1{margin:0;font-size:clamp(23px,4vw,36px)}header p{color:var(--muted);margin:7px 0 0}
+main{max-width:1200px;margin:26px auto;padding:0 18px}.notice{border:1px solid #80652a;background:#332a17;color:#ffe2a1;padding:13px 16px;border-radius:12px;margin-bottom:18px;font-size:14px;line-height:1.7}
 .filters,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:13px;margin-bottom:20px}
-label{display:block;color:#b8c7dc;font-size:13px;margin-bottom:7px}select,input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1526;color:#fff;font:inherit}
-button{border:0;border-radius:10px;padding:12px 18px;background:var(--green);color:#062116;font-weight:750;font:inherit;cursor:pointer}.actions{display:flex;align-items:end;gap:8px}.secondary{background:#263750;color:#eaf2ff}
+label{display:block;color:#b8c7dc;font-size:13px;margin-bottom:7px}select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1526;color:#fff;font:inherit}
+button{border:0;border-radius:10px;padding:11px 16px;background:var(--green);color:#062116;font-weight:750;font:inherit;cursor:pointer}.secondary{background:#263750;color:#eaf2ff}.actions{display:flex;align-items:end;gap:8px}.lang{min-width:110px}
 .results-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 12px}.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
-.product h3{margin:0 0 8px;font-size:19px}.tag{display:inline-block;background:#1e3b39;color:#83efc0;padding:4px 9px;border-radius:20px;font-size:12px;margin:0 0 10px}.meta{color:var(--muted);font-size:13px;line-height:1.8}.score{font-size:24px;color:var(--green);font-weight:800;margin:10px 0}.why{border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-size:14px;line-height:1.7}
-footer{text-align:center;color:var(--muted);padding:35px 15px;font-size:13px}
-@media(max-width:560px){.results-head{align-items:flex-start;flex-direction:column}.actions button{width:100%}}
+.product h3{margin:0 0 8px;font-size:19px}.tag{display:inline-block;background:#1e3b39;color:#83efc0;padding:4px 9px;border-radius:20px;font-size:12px;margin:0 0 10px}.meta{color:var(--muted);font-size:13px;line-height:1.8}.score{font-size:24px;color:var(--green);font-weight:800;margin:10px 0}.why{border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-size:14px;line-height:1.8}
+footer{text-align:center;color:var(--muted);padding:32px 15px;font-size:13px}
+[dir="rtl"] body{text-align:right}[dir="rtl"] .filters{text-align:right}
+@media(max-width:560px){.results-head{align-items:flex-start;flex-direction:column}.actions{grid-column:1/-1}.actions button{flex:1}}
 </style></head>
 <body>
-<header><h1>🚀 AI Winning Product Finder</h1><p>Apni market ke liye product ideas dhoondein — mobile aur desktop dono par.</p></header>
+<header><div><h1>🚀 <span data-i18n="title">AI Winning Product Finder</span></h1><p data-i18n="subtitle">Discover product ideas for your target market — on mobile and desktop.</p></div><button class="secondary lang" id="language" type="button">اردو</button></header>
 <main>
-<div class="notice">اہم: Yeh pehla working prototype hai. Abhi live marketplace data ya AI scoring API connect nahi; neeche diye gaye products demo ideas hain, real-time winning-product claims nahi.</div>
+<div class="notice" role="note"><strong data-i18n="noticeTitle">Prototype notice:</strong> <span data-i18n="noticeText">Live marketplace data and AI scoring are not connected yet. The products and scores below are demonstration examples, not verified winning-product claims.</span></div>
 <section class="filters" aria-label="Product filters">
-<div><label for="country">Mulk</label><select id="country"><option value="Pakistan">Pakistan</option><option>United States</option><option>United Kingdom</option><option>United Arab Emirates</option><option>Saudi Arabia</option><option>India</option><option>Canada</option><option>Australia</option><option>Germany</option></select></div>
-<div><label for="city">Shehar</label><select id="city"><option>Faisalabad</option><option>Lahore</option><option>Karachi</option><option>Islamabad</option><option>Rawalpindi</option><option>Peshawar</option><option>Multan</option><option>Other / All cities</option></select></div>
-<div><label for="category">Category</label><select id="category"><option value="all">Tamam categories</option><option>Home & Kitchen</option><option>Electronics</option><option>Beauty</option><option>Fitness</option><option>Fashion</option><option>Pet Supplies</option></select></div>
-<div><label for="device">Device</label><select id="device"><option value="both">Mobile + Desktop</option><option>Mobile</option><option>Desktop</option></select></div>
-<div><label for="budget">Product budget</label><select id="budget"><option value="all">Koi bhi budget</option><option value="low">Low cost</option><option value="mid">Medium cost</option></select></div>
-<div class="actions"><button id="search">Products dhoondein</button><button class="secondary" id="reset">Reset</button></div>
+<div><label for="country" data-i18n="country">Country</label><select id="country"></select></div>
+<div><label for="city" data-i18n="city">City</label><select id="city"></select></div>
+<div><label for="category" data-i18n="category">Category</label><select id="category">
+<option value="all" data-i18n="allCategories">All categories</option><option value="Home & Kitchen">Home & Kitchen</option><option value="Electronics">Electronics</option><option value="Beauty">Beauty</option><option value="Fitness">Fitness</option><option value="Fashion">Fashion</option><option value="Pet Supplies">Pet Supplies</option></select></div>
+<div><label for="device" data-i18n="device">Device</label><select id="device"><option value="both" data-i18n="both">Mobile + Desktop</option><option value="mobile" data-i18n="mobile">Mobile</option><option value="desktop" data-i18n="desktop">Desktop</option></select></div>
+<div><label for="budget" data-i18n="budget">Product budget</label><select id="budget"><option value="all" data-i18n="anyBudget">Any budget</option><option value="low" data-i18n="lowCost">Low cost</option><option value="mid" data-i18n="mediumCost">Medium cost</option></select></div>
+<div class="actions"><button id="search" data-i18n="search">Find products</button><button class="secondary" id="reset" data-i18n="reset">Reset</button></div>
 </section>
-<div class="results-head"><h2 style="margin:0">Product ideas</h2><span id="count" class="meta">6 demo ideas</span></div>
+<div class="results-head"><h2 style="margin:0" data-i18n="ideas">Product ideas</h2><span id="count" class="meta"></span></div>
 <section id="results" class="results" aria-live="polite"></section>
 </main>
-<footer>AI Winning Product Finder · Free starter prototype · Open-source friendly</footer>
+<footer>AI Winning Product Finder · <span data-i18n="footer">Free starter prototype · Open-source friendly</span></footer>
 <script>
-const products=[
-{name:"Rechargeable Mini Blender",cat:"Home & Kitchen",cost:"mid",score:82,price:"Medium",why:"Portable use aur healthy drinks ki demand ko test kiya ja sakta hai."},
-{name:"LED Motion Sensor Light",cat:"Home & Kitchen",cost:"low",score:88,price:"Low",why:"Home security aur electricity-saving use case."},
-{name:"Wireless Earbuds Case",cat:"Electronics",cost:"low",score:74,price:"Low",why:"Mobile accessories ki broad audience; competition check zaroor karein."},
-{name:"Reusable Makeup Remover Pads",cat:"Beauty",cost:"low",score:79,price:"Low",why:"Reusable aur low-shipping-weight product idea."},
-{name:"Resistance Bands Set",cat:"Fitness",cost:"low",score:85,price:"Low",why:"Home workout ke liye compact fitness accessory."},
-{name:"Pet Grooming Brush",cat:"Pet Supplies",cost:"mid",score:77,price:"Medium",why:"Pet-care niche mein audience aur local competition validate karein."}
+const translations={
+en:{title:"AI Winning Product Finder",subtitle:"Discover product ideas for your target market — on mobile and desktop.",noticeTitle:"Prototype notice:",noticeText:"Live marketplace data and AI scoring are not connected yet. The products and scores below are demonstration examples, not verified winning-product claims.",country:"Country",city:"City",category:"Category",device:"Device",both:"Mobile + Desktop",mobile:"Mobile",desktop:"Desktop",budget:"Product budget",allCategories:"All categories",anyBudget:"Any budget",lowCost:"Low cost",mediumCost:"Medium cost",search:"Find products",reset:"Reset",ideas:"Product ideas",count:"demo ideas",estimated:"Estimated cost",market:"Market",demoScore:"demo score",noIdeas:"No demo ideas match these filters.",footer:"Free starter prototype · Open-source friendly",languageButton:"اردو",costLow:"Low",costMedium:"Medium"},
+ur:{title:"اے آئی وننگ پروڈکٹ فائنڈر",subtitle:"اپنی منتخب مارکیٹ کے لیے پروڈکٹ آئیڈیاز تلاش کریں — موبائل اور ڈیسک ٹاپ دونوں پر۔",noticeTitle:"پروٹوٹائپ نوٹ:",noticeText:"ابھی لائیو مارکیٹ پلیس ڈیٹا اور اے آئی اسکورنگ منسلک نہیں۔ نیچے دی گئی مصنوعات اور اسکور صرف مثالیں ہیں، تصدیق شدہ وننگ پروڈکٹس نہیں۔",country:"ملک",city:"شہر",category:"کیٹیگری",device:"ڈیوائس",both:"موبائل + ڈیسک ٹاپ",mobile:"موبائل",desktop:"ڈیسک ٹاپ",budget:"پروڈکٹ بجٹ",allCategories:"تمام کیٹیگریز",anyBudget:"کوئی بھی بجٹ",lowCost:"کم قیمت",mediumCost:"درمیانی قیمت",search:"پروڈکٹس تلاش کریں",reset:"ری سیٹ",ideas:"پروڈکٹ آئیڈیاز",count:"ڈیمو آئیڈیاز",estimated:"متوقع لاگت",market:"مارکیٹ",demoScore:"ڈیمو اسکور",noIdeas:"ان فلٹرز کے مطابق کوئی ڈیمو آئیڈیا نہیں ملا۔",footer:"مفت ابتدائی پروٹوٹائپ · اوپن سورس کے لیے تیار",languageButton:"English",costLow:"کم",costMedium:"درمیانی"},
+};
+const countries=[
+{n:"Pakistan",cities:["Faisalabad","Lahore","Karachi","Islamabad","Rawalpindi","Peshawar","Multan","Other / All cities"]},
+{n:"United States",cities:["New York","Los Angeles","Chicago","Houston","Dallas","Other / All cities"]},
+{n:"United Kingdom",cities:["London","Manchester","Birmingham","Leeds","Other / All cities"]},
+{n:"United Arab Emirates",cities:["Dubai","Abu Dhabi","Sharjah","Ajman","Other / All cities"]},
+{n:"Saudi Arabia",cities:["Riyadh","Jeddah","Mecca","Medina","Dammam","Other / All cities"]},
+{n:"India",cities:["Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Other / All cities"]},
+{n:"Canada",cities:["Toronto","Vancouver","Montreal","Calgary","Other / All cities"]},
+{n:"Australia",cities:["Sydney","Melbourne","Brisbane","Perth","Other / All cities"]},
+{n:"Germany",cities:["Berlin","Munich","Hamburg","Frankfurt","Other / All cities"]}
 ];
-const results=document.getElementById('results');
-function render(){const cat=document.getElementById('category').value,budget=document.getElementById('budget').value;const list=products.filter(p=>(cat==='all'||p.cat===cat)&&(budget==='all'||p.cost===budget));document.getElementById('count').textContent=list.length+' demo ideas';results.innerHTML=list.length?list.map(p=>'<article class="card product"><span class="tag">'+p.cat+'</span><h3>'+p.name+'</h3><div class="meta">Estimated cost: '+p.price+' · Market: '+document.getElementById('country').value+' / '+document.getElementById('city').value+'</div><div class="score">'+p.score+'/100 <small class="meta">demo score</small></div><div class="why">'+p.why+'</div></article>').join(''):'<div class="card">Is filter mein abhi koi demo idea nahi.</div>'}
-document.getElementById('search').addEventListener('click',render);
-document.getElementById('reset').addEventListener('click',()=>{document.getElementById('category').value='all';document.getElementById('budget').value='all';document.getElementById('country').value='Pakistan';document.getElementById('city').value='Faisalabad';document.getElementById('device').value='both';render()});
-render();
-if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(err => console.warn("Offline mode unavailable", err))); }
+const products=[
+{id:"blender",name:"Rechargeable Mini Blender",cat:"Home & Kitchen",cost:"mid",score:82,why:{en:"Test demand for portable blending and healthy drinks.",ur:"پورٹیبل بلینڈنگ اور صحت بخش مشروبات کی طلب جانچیں۔"}},
+{id:"sensor",name:"LED Motion Sensor Light",cat:"Home & Kitchen",cost:"low",score:88,why:{en:"A home-safety and energy-saving use case to validate.",ur:"گھر کی حفاظت اور بجلی بچانے کے استعمال کی جانچ کریں۔"}},
+{id:"earbuds",name:"Wireless Earbuds Case",cat:"Electronics",cost:"low",score:74,why:{en:"Broad mobile-accessory audience; check competition first.",ur:"موبائل ایکسیسریز کی وسیع مارکیٹ؛ پہلے مقابلہ دیکھیں۔"}},
+{id:"pads",name:"Reusable Makeup Remover Pads",cat:"Beauty",cost:"low",score:79,why:{en:"Reusable product idea with relatively light shipping weight.",ur:"دوبارہ استعمال ہونے والی مصنوعات، جن کا شپنگ وزن نسبتاً کم ہے۔"}},
+{id:"bands",name:"Resistance Bands Set",cat:"Fitness",cost:"low",score:85,why:{en:"Compact fitness accessory for home workouts.",ur:"گھر میں ورزش کے لیے مختصر اور آسان فٹنس ایکسیسری۔"}},
+{id:"brush",name:"Pet Grooming Brush",cat:"Pet Supplies",cost:"mid",score:77,why:{en:"Validate the audience and local competition in pet care.",ur:"پالتو جانوروں کی دیکھ بھال کی مارکیٹ اور مقامی مقابلہ جانچیں۔"}}
+];
+let language=localStorage.getItem("winningFinderLanguage")||"en";
+const $=id=>document.getElementById(id);
+function fillCountries(){ $("country").innerHTML=countries.map(c=>'<option value="'+c.n+'">'+c.n+'</option>').join("");$("country").value="Pakistan";fillCities(); }
+function fillCities(){const selected=countries.find(c=>c.n===$("country").value)||countries[0];$("city").innerHTML=selected.cities.map(c=>'<option>'+c+'</option>').join("");}
+function render(){const t=translations[language],cat=$("category").value,budget=$("budget").value;const list=products.filter(p=>(cat==="all"||p.cat===cat)&&(budget==="all"||p.cost===budget));$("count").textContent=list.length+" "+t.count;$("results").innerHTML=list.length?list.map(p=>'<article class="card product"><span class="tag">'+p.cat+'</span><h3>'+p.name+'</h3><div class="meta">'+t.estimated+": "+(p.cost==="low"?t.costLow:t.costMedium)+" · "+t.market+": "+$("country").value+" / "+$("city").value+'</div><div class="score">'+p.score+'/100 <small class="meta">'+t.demoScore+'</small></div><div class="why">'+p.why[language]+'</div></article>').join(""):'<div class="card">'+t.noIdeas+'</div>';}
+function setLanguage(next){language=next;localStorage.setItem("winningFinderLanguage",language);document.documentElement.lang=language;document.documentElement.dir=language==="ur"?"rtl":"ltr";document.querySelectorAll("[data-i18n]").forEach(el=>{const key=el.dataset.i18n;el.textContent=translations[language][key]||el.textContent;});$("language").textContent=translations[language].languageButton;render();}
+$("country").addEventListener("change",()=>{fillCities();render();});["category","budget","city"].forEach(id=>$(id).addEventListener("change",render));$("search").addEventListener("click",render);
+$("reset").addEventListener("click",()=>{$("country").value="Pakistan";fillCities();$("city").value="Faisalabad";$("category").value="all";$("budget").value="all";$("device").value="both";render();});
+$("language").addEventListener("click",()=>setLanguage(language==="en"?"ur":"en"));
+fillCountries();setLanguage(language);
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(err=>console.warn("Offline mode unavailable",err)));}
 </script></body></html>
