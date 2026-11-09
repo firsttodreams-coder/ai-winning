@@ -1,6 +1,10 @@
 """Cloudflare Python Worker entry point for the FastAPI application."""
-from workers import asgi
+from workers import WorkerEntrypoint
+import asgi
+
 from api.main import app
 
-# Cloudflare's Python Workers runtime supplies the ASGI server.
-Default = asgi.entrypoint(app)
+
+class Default(WorkerEntrypoint):
+    async def fetch(self, request):
+        return await asgi.fetch(app, request.js_object, self.env)
