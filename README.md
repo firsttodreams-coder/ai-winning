@@ -11,6 +11,8 @@ Included:
 - Country and city selectors
 - Category and estimated-budget filters
 - Clearly labelled sample product ideas and demo scores
+- Installable Progressive Web App (PWA) manifest and app icon
+- Basic offline cache for the app shell through a service worker
 
 ## Important data note
 
@@ -18,7 +20,7 @@ The current product list and scores are static demonstration data. They are not 
 
 ## Run
 
-Open `index.html` in a modern browser, or publish the repository with GitHub Pages.
+Open `index.html` in a modern browser, or publish the repository with GitHub Pages. For installation, open the deployed HTTPS site in a supported mobile browser and use its browser menu's install/add-to-home-screen option. The service worker requires HTTPS or localhost.
 
 ## Planned development
 
@@ -27,6 +29,7 @@ Open `index.html` in a modern browser, or publish the repository with GitHub Pag
 3. Add optional AI analysis through a provider chosen by the project owner, with a free/local mode where feasible.
 4. Add saved searches, comparison, and export.
 5. Add tests, accessibility improvements, and deployment instructions.
+6. Add a real backend and secure server-side API integration before handling private credentials.
 
 ## License
 
