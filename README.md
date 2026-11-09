@@ -15,11 +15,12 @@ Included:
 - English and Urdu interface with an in-app language switch
 - Right-to-left Urdu and left-to-right English layouts
 - Country-specific city lists for the supported markets
+- Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
 - Basic offline cache for the app shell through a service worker
 
 ## Important data note
 
-The current product list and scores are static demonstration data. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations.
+The current product list and sample scores are static demonstration data. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
 
 ## Run
 
