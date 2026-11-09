@@ -19,6 +19,8 @@ Included:
 - Personal product research workspace: evaluate and save product candidates with your own evidence URL, market, cost inputs, weighted score, and estimated per-unit profit
 - Research records saved locally in the current browser, with CSV export and delete controls
 - Country-aware free research shortcuts for Google Trends, Daraz, Amazon regional stores, eBay sold listings, and web search; links open external sites and do not claim to import live metrics
+- Market research workspace that builds category/country search links and product-specific supplier searches for Alibaba, AliExpress, CJdropshipping, 1688, Daraz, Amazon and eBay
+- Product-specific demand and competition research shortcuts, with explicit disclosure that city-level sales, live competition counts, supplier prices, and sales volumes are not yet automatically verified
 - Basic offline cache for the app shell through a service worker
 - MIT license
 - Initial FastAPI backend with health, scoring-model, product-scoring, and product-economics endpoints
@@ -27,7 +29,7 @@ Included:
 
 ## Important data note
 
-The current product list and sample scores are static demonstration data. The personal research workspace evaluates values and evidence entered by the user; saved records remain in that browser's local storage and can be exported as CSV. It does not synchronize across devices. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
+The current product list and sample scores are static demonstration data. The market research workspace generates direct search links to third-party sites; it does not scrape those sites, fetch sales volumes, verify supplier offers, or calculate live competition. City is a search hint only; most public trend and marketplace sources are country-level. The personal research workspace evaluates values and evidence entered by the user; saved records remain in that browser's local storage and can be exported as CSV. It does not synchronize across devices. They are not live marketplace statistics, validated sales figures, or AI-generated recommendations. The opportunity calculator is a transparent weighted estimate based only on ratings entered by the user.
 
 ## Run
 
@@ -52,8 +54,8 @@ Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.m
 ## Planned development
 
 1. Connect the frontend calculator to the API after selecting a backend host.
-2. Add a real data-source layer using permitted public/free sources and source timestamps.
-3. Add evidence-backed product metrics and country-aware currency/shipping filters.
+2. Add a real data-source layer using permitted public/free sources and source timestamps, beginning with reliable country-level trend feeds and explicit rate-limit handling.
+3. Add evidence-backed product metrics and country-aware currency/shipping filters, including verified supplier pricing, MOQ, shipping and seller counts where source access permits.
 4. Add optional AI-assisted analysis with citations and a no-key/local mode where feasible.
 5. Add saved searches, comparison, export, and further integration tests.
 
