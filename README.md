@@ -18,7 +18,8 @@ Included:
 - Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
 - Basic offline cache for the app shell through a service worker
 - MIT license
-- Initial FastAPI backend with health, scoring-model, and product-scoring endpoints
+- Initial FastAPI backend with health, scoring-model, product-scoring, and product-economics endpoints
+- Cloudflare Python Workers entry point and deployment configuration
 - Automated API tests and documented local setup
 
 ## Important data note
@@ -32,7 +33,7 @@ Open `index.html` in a modern browser, or publish the repository with GitHub Pag
 
 ## GitHub Pages setup
 
-The deployment workflow is ready, but the GitHub Pages site is not enabled yet. The connected GitHub integration cannot create the Pages site because GitHub denies that administrative permission. The repository owner must do this one-time step: open **Settings → Pages**, choose **GitHub Actions** as the build and deployment source, and save. Subsequent pushes to `main` will deploy automatically.
+The GitHub Pages deployment workflow publishes the frontend automatically when changes are pushed to `main`.
 
 ## Backend API
 
@@ -41,8 +42,9 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `GET /health` — service health check
 - `GET /api/v1/scoring-model` — transparent scoring weights
 - `POST /api/v1/score` — score five user-provided signals from 1 to 10
+- `POST /api/v1/product-economics` — estimate per-unit profit, margin, ROI, and break-even price
 
-Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API does not yet fetch live marketplace data.
+Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API does not yet fetch live marketplace data or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Planned development
 
