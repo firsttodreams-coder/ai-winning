@@ -2,7 +2,7 @@
 <html lang="ur" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827"><title>AI Winning Product Finder</title>
+<meta name="theme-color" content="#101827"><link rel="manifest" href="./manifest.json"><link rel="icon" href="./icon.svg" type="image/svg+xml"><title>AI Winning Product Finder</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#26364e;--muted:#9aabc2;--green:#42d392;--blue:#6ea8fe}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#0b1220,#111d32);color:#edf4ff;font-family:system-ui,-apple-system,"Noto Sans Arabic",sans-serif;min-height:100vh}
@@ -46,4 +46,5 @@ function render(){const cat=document.getElementById('category').value,budget=doc
 document.getElementById('search').addEventListener('click',render);
 document.getElementById('reset').addEventListener('click',()=>{document.getElementById('category').value='all';document.getElementById('budget').value='all';document.getElementById('country').value='Pakistan';document.getElementById('city').value='Faisalabad';document.getElementById('device').value='both';render()});
 render();
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(err => console.warn("Offline mode unavailable", err))); }
 </script></body></html>
