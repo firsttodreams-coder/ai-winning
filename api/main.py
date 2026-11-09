@@ -4,12 +4,25 @@ This service scores user-provided research signals. It does not claim to fetch
 live marketplace data or make autonomous AI predictions.
 """
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="AI Winning Product Finder API",
     description="Open API for transparent product opportunity scoring.",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://firsttodreams-coder.github.io",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 WEIGHTS = {
