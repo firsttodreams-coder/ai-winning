@@ -146,7 +146,7 @@ $("reset").addEventListener("click",()=>{$("country").value="Pakistan";fillCitie
 $("language").addEventListener("click",()=>setLanguage(language==="en"?"ur":"en"));
 
 const supplierSearches=(query,country)=>{
- const q=encodeURIComponent(query),slug=encodeURIComponent(query.trim().replace(/\\s+/g,"-"));
+ const q=encodeURIComponent(query),slug=encodeURIComponent(query.trim().replace(/\s+/g,"-"));
  const amazon={"Pakistan":null,"United States":"www.amazon.com","United Kingdom":"www.amazon.co.uk","United Arab Emirates":"www.amazon.ae","Saudi Arabia":"www.amazon.sa","India":"www.amazon.in","Canada":"www.amazon.ca","Australia":"www.amazon.com.au","Germany":"www.amazon.de"}[country];
  const ebay={"Pakistan":"www.ebay.com","United States":"www.ebay.com","United Kingdom":"www.ebay.co.uk","United Arab Emirates":"www.ebay.com","Saudi Arabia":"www.ebay.com","India":"www.ebay.in","Canada":"www.ebay.ca","Australia":"www.ebay.com.au","Germany":"www.ebay.de"}[country]||"www.ebay.com";
  return [["Alibaba","https://www.alibaba.com/trade/search?SearchText="+q],["AliExpress","https://www.aliexpress.com/w/wholesale-"+slug+".html"],["CJdropshipping","https://cjdropshipping.com/"],["1688","https://s.1688.com/selloffer/offer_search.htm?keywords="+q],...(country==="Pakistan"?[["Daraz Pakistan","https://www.daraz.pk/catalog/?q="+q]]:[]),...(amazon?[["Amazon "+country,"https://"+amazon+"/s?k="+q]]:[]),["eBay sold listings","https://"+ebay+"/sch/i.html?_nkw="+q+"&LH_Sold=1&LH_Complete=1"]];
