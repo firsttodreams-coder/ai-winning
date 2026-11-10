@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from api.main import app
+from api.main import app, parse_google_trends_rss
 
 client = TestClient(app)
 
@@ -69,3 +69,30 @@ def test_frontend_origin_is_allowed_by_cors():
     )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "https://firsttodreams-coder.github.io"
+
+
+def test_google_trends_rss_parser_preserves_source_metrics_and_news():
+    xml = """<?xml version="1.0"?>
+    <rss xmlns:ht="https://trends.google.com/trending/rss">
+      <channel><item>
+        <title>portable blender</title>
+        <pubDate>Mon, 10 Nov 2026 08:00:00 +0000</pubDate>
+        <ht:approx_traffic>2000+</ht:approx_traffic>
+        <ht:news_item>
+          <ht:news_item_title>Example headline</ht:news_item_title>
+          <ht:news_item_url>https://example.com/story</ht:news_item_url>
+          <ht:news_item_source>Example News</ht:news_item_source>
+        </ht:news_item>
+      </item></channel>
+    </rss>"""
+    result = parse_google_trends_rss(xml)
+    assert len(result) == 1
+    assert result[0]["title"] == "portable blender"
+    assert result[0]["approx_traffic"] == "2000+"
+    assert result[0]["started"] == "2026-11-10T08:00:00+00:00"
+    assert result[0]["news"][0]["source"] == "Example News"
+
+
+def test_trends_endpoint_rejects_unsupported_country():
+    response = client.get("/api/v1/trends?country=XX")
+    assert response.status_code == 422
