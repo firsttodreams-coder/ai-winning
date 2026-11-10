@@ -1,16 +1,21 @@
-"""Free, transparent product-opportunity scoring API.
+"""Free product-opportunity scoring and public market-signal API.
 
-This service scores user-provided research signals. It does not claim to fetch
-live marketplace data or make autonomous AI predictions.
+Scores and economics use user-provided inputs. Google Trends RSS is a broad
+country-level discovery signal, not product-specific demand or sales data.
 """
-from fastapi import FastAPI
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+import xml.etree.ElementTree as ET
+
+import httpx
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="AI Winning Product Finder API",
-    description="Open API for transparent product opportunity scoring.",
-    version="0.1.0",
+    description="Open API for transparent product scoring and public market signals.",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -33,6 +38,19 @@ WEIGHTS = {
     "trend": 0.15,
 }
 
+TREND_COUNTRIES = {
+    "PK": "Pakistan",
+    "US": "United States",
+    "GB": "United Kingdom",
+    "AE": "United Arab Emirates",
+    "SA": "Saudi Arabia",
+    "IN": "India",
+    "CA": "Canada",
+    "AU": "Australia",
+    "DE": "Germany",
+}
+GOOGLE_TRENDS_NAMESPACE = "{https://trends.google.com/trending/rss}"
+
 
 class OpportunitySignals(BaseModel):
     demand: int = Field(ge=1, le=10, description="Strength of demand evidence")
@@ -52,6 +70,39 @@ class ProductEconomics(BaseModel):
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
 
 
+def parse_google_trends_rss(xml_text: str) -> list[dict]:
+    """Parse Google's public Trending Now RSS feed without inventing metrics."""
+    root = ET.fromstring(xml_text)
+    channel = root.find("channel")
+    if channel is None:
+        raise ValueError("RSS channel is missing")
+
+    items = []
+    for item in channel.findall("item"):
+        title = item.findtext("title")
+        if not title:
+            continue
+        published = item.findtext("pubDate")
+        try:
+            started = parsedate_to_datetime(published).astimezone(timezone.utc).isoformat() if published else None
+        except (TypeError, ValueError, OverflowError):
+            started = None
+        news = []
+        for entry in item.findall(f"{GOOGLE_TRENDS_NAMESPACE}news_item"):
+            news_title = entry.findtext(f"{GOOGLE_TRENDS_NAMESPACE}news_item_title")
+            news_url = entry.findtext(f"{GOOGLE_TRENDS_NAMESPACE}news_item_url")
+            news_source = entry.findtext(f"{GOOGLE_TRENDS_NAMESPACE}news_item_source")
+            if news_title:
+                news.append({"title": news_title, "url": news_url, "source": news_source})
+        items.append({
+            "title": title,
+            "approx_traffic": item.findtext(f"{GOOGLE_TRENDS_NAMESPACE}approx_traffic"),
+            "started": started,
+            "news": news,
+        })
+    return items
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "ai-winning-product-finder-api"}
@@ -60,10 +111,44 @@ def health():
 @app.get("/api/v1/scoring-model")
 def scoring_model():
     return {
-        "version": "0.1.0",
+        "version": "0.2.0",
         "scale": {"minimum": 1, "maximum": 10},
         "weights": WEIGHTS,
         "note": "Scores are estimates based only on supplied inputs, not live market evidence.",
+    }
+
+
+@app.get("/api/v1/trends")
+async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE)$")):
+    """Return Google's public top 10 Trending Now RSS entries for a supported country."""
+    feed_url = f"https://trends.google.com/trending/rss?geo={country}"
+    try:
+        async with httpx.AsyncClient(
+            timeout=12.0,
+            follow_redirects=True,
+            headers={"User-Agent": "AI-Winning-Product-Finder/0.2 (+public-trends-reader)"},
+        ) as client:
+            response = await client.get(feed_url)
+            response.raise_for_status()
+        trends = parse_google_trends_rss(response.text)
+    except (httpx.HTTPError, ET.ParseError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Public Google Trends feed is temporarily unavailable. Please try again later.",
+        ) from exc
+
+    return {
+        "country": country,
+        "country_name": TREND_COUNTRIES[country],
+        "source": feed_url,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "count": len(trends),
+        "trends": trends,
+        "data_note": (
+            "These are broad Google Search trends, not product-specific search volume, "
+            "marketplace sales, competitor counts, or verified buying demand. "
+            "Traffic values are approximate buckets supplied by Google."
+        ),
     }
 
 
