@@ -25,7 +25,7 @@ Included:
 - Product-specific demand and competition research shortcuts, with explicit disclosure that city-level sales, live competition counts, supplier prices, and sales volumes are not yet automatically verified
 - Basic offline cache for the app shell through a service worker
 - MIT license
-- Initial FastAPI backend with health, scoring-model, product-scoring, and product-economics endpoints
+- FastAPI backend with health, scoring-model, country-level Google Trends RSS, product-scoring, and product-economics endpoints
 - Cloudflare Python Workers entry point and deployment configuration
 - Automated API tests and documented local setup
 
@@ -51,13 +51,13 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `POST /api/v1/score` — score five user-provided signals from 1 to 10
 - `POST /api/v1/product-economics` — estimate per-unit profit, margin, ROI, and break-even price
 
-Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API does not yet fetch live marketplace data or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
+Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for nine supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Planned development
 
 1. Connect the frontend calculator to the API after selecting a backend host.
-2. Add a real data-source layer using permitted public/free sources and source timestamps, beginning with reliable country-level trend feeds and explicit rate-limit handling.
-3. Add evidence-backed product metrics and country-aware currency/shipping filters, including verified supplier pricing, MOQ, shipping and seller counts where source access permits.
+2. Show the connected country-level Google Trends feed in the bilingual frontend with source timestamps and clear evidence limitations.
+3. Add permitted marketplace evidence adapters and country-aware currency/shipping filters, including verified supplier pricing, MOQ, shipping and seller counts where source access permits.
 4. Add optional AI-assisted analysis with citations and a no-key/local mode where feasible.
 5. Add saved searches, comparison, export, and further integration tests.
 
