@@ -234,3 +234,55 @@ def test_trends_endpoint_accepts_additional_gcc_markets(monkeypatch):
     response = client.get("/api/v1/trends?country=OM")
     assert response.status_code == 200
     assert response.json()["country_name"] == "Oman"
+
+
+def test_marketplace_price_comparison_calculates_delivered_market_prices_and_profit():
+    response = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "Portable blender",
+        "country": "SA",
+        "currency": "SAR",
+        "planned_selling_price": 180,
+        "supplier_cost": 65,
+        "supplier_shipping": 15,
+        "platform_fee_percent": 5,
+        "marketing_cost": 12,
+        "returns_allowance": 3,
+        "listings": [
+            {"marketplace": "Amazon.sa", "price": 149, "shipping_cost": 10, "listing_url": "https://example.com/a", "observed_sold_count": None},
+            {"marketplace": "Noon", "price": 159, "shipping_cost": 0, "captured_at": "2026-11-13T10:00:00Z"},
+            {"marketplace": "Other", "price": 139, "shipping_cost": 5, "observed_sold_count": 24}
+        ]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["marketplace_prices"]["lowest_delivered_price"] == 144
+    assert result["marketplace_prices"]["average_delivered_price"] == 154.33
+    assert result["marketplace_prices"]["median_delivered_price"] == 159
+    assert result["supplier"]["landed_cost"] == 80
+    assert result["estimated_profit_per_order"] == 71
+    assert result["listings"][0]["observed_sold_count"] is None
+    assert result["listings"][0]["evidence_status"] == "user_supplied_or_imported_not_live_verified"
+
+
+def test_marketplace_price_comparison_rejects_empty_listings_and_invalid_country():
+    empty = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "Mini blender", "country": "SA", "currency": "SAR",
+        "planned_selling_price": 100, "supplier_cost": 30, "listings": []
+    })
+    invalid = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "Mini blender", "country": "XX", "currency": "SAR",
+        "planned_selling_price": 100, "supplier_cost": 30,
+        "listings": [{"marketplace": "Noon", "price": 90}]
+    })
+    assert empty.status_code == 422
+    assert invalid.status_code == 422
+
+
+def test_marketplace_price_comparison_keeps_missing_sold_count_unknown():
+    response = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "Phone stand", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 1000, "supplier_cost": 300,
+        "listings": [{"marketplace": "Daraz", "price": 850}]
+    })
+    assert response.status_code == 200
+    assert response.json()["listings"][0]["observed_sold_count"] is None
