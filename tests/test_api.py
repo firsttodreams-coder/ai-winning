@@ -286,3 +286,16 @@ def test_marketplace_price_comparison_keeps_missing_sold_count_unknown():
     })
     assert response.status_code == 200
     assert response.json()["listings"][0]["observed_sold_count"] is None
+
+
+def test_marketplace_price_comparison_accepts_all_frontend_market_countries():
+    response = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "USB desk fan",
+        "country": "US",
+        "currency": "USD",
+        "planned_selling_price": 25,
+        "supplier_cost": 8,
+        "listings": [{"marketplace": "Amazon", "price": 22}]
+    })
+    assert response.status_code == 200
+    assert response.json()["country"] == "US"
