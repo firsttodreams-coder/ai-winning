@@ -20,7 +20,7 @@ Open these endpoints, replacing `WORKER_URL` with the URL Cloudflare provides:
 - `https://WORKER_URL/health`
 - `https://WORKER_URL/api/v1/scoring-model`
 
-The API also supports `POST /api/v1/score` and `POST /api/v1/product-economics`.
+The API also supports `POST /api/v1/score` and `POST /api/v1/product-economics`. Supplier and marketplace comparison endpoints accept user-entered or imported evidence only; no supplier or marketplace account is connected by default.
 
 ## Free-plan note
 
