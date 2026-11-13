@@ -56,7 +56,7 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `POST /api/v1/supplier-offers/compare` — rank user-entered/imported supplier quotes by landed cost and estimated profit, preserving source URL and capture time
 - `POST /api/v1/marketplace-prices/compare` — compare observed Daraz/Amazon/Noon/eBay listing prices (including entered shipping) against supplier cost and planned profit; preserves source links and unknown sales counts
 
-Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for nine supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
+Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for 13 supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW, BH). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Next development milestones
 
