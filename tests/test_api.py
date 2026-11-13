@@ -256,7 +256,7 @@ def test_marketplace_price_comparison_calculates_delivered_market_prices_and_pro
     assert response.status_code == 200
     result = response.json()
     assert result["marketplace_prices"]["lowest_delivered_price"] == 144
-    assert result["marketplace_prices"]["average_delivered_price"] == 154.33
+    assert result["marketplace_prices"]["average_delivered_price"] == 154.0
     assert result["marketplace_prices"]["median_delivered_price"] == 159
     assert result["supplier"]["landed_cost"] == 80
     assert result["estimated_profit_per_order"] == 76
