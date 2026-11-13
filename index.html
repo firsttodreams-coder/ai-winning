@@ -46,6 +46,27 @@ footer{text-align:center;color:var(--muted);padding:32px 15px;font-size:13px}
 </div>
 
 <div class="discovery-detail"><h3 data-i18n="supplierDirectoryTitle">Local wholesale & dropshipping supplier directory</h3><p class="discovery-note" data-i18n="supplierDirectoryHelp">Country-focused supplier platforms. Check stock, MOQ, delivery, returns and fees directly before ordering.</p><div id="supplierDirectory" class="results"></div></div>
+<div class="discovery-detail">
+<h3 data-i18n="marketCompareTitle">Marketplace price vs supplier cost</h3>
+<p data-i18n="marketCompareHelp">Enter visible marketplace prices and a supplier quote. This tool does not fetch live listing data.</p>
+<div class="economics-grid">
+<div><label for="marketCompareProduct">Product name</label><input id="marketCompareProduct" maxlength="160"></div>
+<div><label for="marketSupplierCost">Supplier cost</label><input id="marketSupplierCost" type="number" min="0" step="0.01"></div>
+<div><label for="marketSupplierShipping">Supplier shipping</label><input id="marketSupplierShipping" type="number" min="0" step="0.01" value="0"></div>
+<div><label for="marketPlannedPrice">Planned selling price</label><input id="marketPlannedPrice" type="number" min="0.01" step="0.01"></div>
+<div><label for="marketFee">Platform fee (%)</label><input id="marketFee" type="number" min="0" max="100" step="0.1" value="0"></div>
+<div><label for="marketAds">Ad cost per order</label><input id="marketAds" type="number" min="0" step="0.01" value="0"></div>
+<div><label for="marketReturns">Returns / other allowance</label><input id="marketReturns" type="number" min="0" step="0.01" value="0"></div>
+</div>
+<h4>Observed marketplace listings (up to 3)</h4>
+<div class="economics-grid">
+<div><label for="marketplace1">Marketplace 1</label><select id="marketplace1"><option>Daraz</option><option>Amazon</option><option>Noon</option><option>eBay</option><option>Other</option></select><label for="marketPrice1">Listing price</label><input id="marketPrice1" type="number" min="0.01" step="0.01"><label for="marketShip1">Listing shipping</label><input id="marketShip1" type="number" min="0" step="0.01" value="0"><label for="marketUrl1">Listing URL (optional)</label><input id="marketUrl1" type="url"><label for="marketSold1">Visible sold count (optional)</label><input id="marketSold1" type="number" min="0" step="1"></div><div><label for="marketplace2">Marketplace 2</label><select id="marketplace2"><option>Daraz</option><option>Amazon</option><option>Noon</option><option>eBay</option><option>Other</option></select><label for="marketPrice2">Listing price</label><input id="marketPrice2" type="number" min="0.01" step="0.01"><label for="marketShip2">Listing shipping</label><input id="marketShip2" type="number" min="0" step="0.01" value="0"><label for="marketUrl2">Listing URL (optional)</label><input id="marketUrl2" type="url"><label for="marketSold2">Visible sold count (optional)</label><input id="marketSold2" type="number" min="0" step="1"></div><div><label for="marketplace3">Marketplace 3</label><select id="marketplace3"><option>Daraz</option><option>Amazon</option><option>Noon</option><option>eBay</option><option>Other</option></select><label for="marketPrice3">Listing price</label><input id="marketPrice3" type="number" min="0.01" step="0.01"><label for="marketShip3">Listing shipping</label><input id="marketShip3" type="number" min="0" step="0.01" value="0"><label for="marketUrl3">Listing URL (optional)</label><input id="marketUrl3" type="url"><label for="marketSold3">Visible sold count (optional)</label><input id="marketSold3" type="number" min="0" step="1"></div>
+</div>
+<button id="runMarketComparison" type="button" data-i18n="marketCompareButton">Compare prices and profit</button>
+<div id="marketComparisonStatus" class="discovery-note" role="status" aria-live="polite"></div>
+<div id="marketComparisonResults" class="economics-results" aria-live="polite"></div>
+<p class="meta" data-i18n="marketCompareDisclaimer">Only entered prices are compared; no live marketplace data is fetched.</p>
+</div>
 <div id="selectedProductResearch" class="discovery-detail" aria-live="polite"><p class="discovery-note" data-i18n="selectProductHint">Choose a product idea below and tap its product research button to see supplier and competition searches for that exact item.</p></div>
 </section>
 <section class="card analyzer">
@@ -298,6 +319,33 @@ async function loadCountryTrends(){
  finally{button.disabled=false;}
 }
 $("loadCountryTrends").addEventListener("click",loadCountryTrends);
+$("runMarketComparison").addEventListener("click",async()=>{
+ const t=translations[language],status=$("marketComparisonStatus"),box=$("marketComparisonResults"),button=$("runMarketComparison");
+ const num=id=>$(id).value.trim()===""?null:Number($(id).value);
+ const product=$("marketCompareProduct").value.trim(),supplierCost=num("marketSupplierCost"),supplierShipping=num("marketSupplierShipping"),planned=num("marketPlannedPrice"),fee=num("marketFee"),ads=num("marketAds"),returns=num("marketReturns");
+ const listings=[];
+ for(let i=1;i<=3;i++){
+  const price=num("marketPrice"+i);if(price===null)continue;
+  const url=$("marketUrl"+i).value.trim(),shipping=num("marketShip"+i)??0,sold=num("marketSold"+i);
+  if(url&&!/^https?:\/\//i.test(url)){status.textContent=t.marketCompareFailed;return;}
+  if(!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))){status.textContent=t.marketCompareFailed;return;}
+  listings.push({marketplace:$("marketplace"+i).value,price,shipping_cost:shipping,listing_url:url||null,observed_sold_count:sold});
+ }
+ if(!product||supplierCost===null||supplierCost<0||supplierShipping===null||supplierShipping<0||planned===null||planned<=0||fee===null||fee<0||fee>100||ads===null||ads<0||returns===null||returns<0||!listings.length){status.textContent=t.marketCompareNeed;return;}
+ const country={"Pakistan":"PK","United Arab Emirates":"AE","Saudi Arabia":"SA","Oman":"OM","Qatar":"QA","Kuwait":"KW","Bahrain":"BH"}[$("country").value];
+ if(!country){status.textContent=t.marketCompareFailed;return;}
+ const payload={product_name:product,country,currency:$("econCurrency").value,planned_selling_price:planned,supplier_cost:supplierCost,supplier_shipping:supplierShipping,platform_fee_percent:fee,marketing_cost:ads,returns_allowance:returns,listings};
+ button.disabled=true;status.textContent=t.marketCompareLoading;box.innerHTML="";
+ try{
+  const response=await fetch("https://ai-winning.firsttodreams.workers.dev/api/v1/marketplace-prices/compare",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!response.ok)throw new Error("Marketplace comparison API "+response.status);
+  const r=await response.json(),m=r.marketplace_prices,fmt=v=>new Intl.NumberFormat(language==="ur"?"ur-PK":"en-US",{maximumFractionDigits:2}).format(v),money=v=>r.currency+" "+fmt(v);
+  const item=(label,value)=>'<div><span>'+escapeResearchText(label)+'</span><strong>'+escapeResearchText(value)+'</strong></div>';
+  box.innerHTML=item(t.marketLowResult,money(m.lowest_delivered_price))+item(t.marketAvgResult,money(m.average_delivered_price))+item(t.marketMedianResult,money(m.median_delivered_price))+item(t.marketHighResult,money(m.highest_delivered_price))+item(t.marketLandedResult,money(r.supplier.landed_cost))+item(t.marketProfitResult,money(r.estimated_profit_per_order))+item(t.marketMarginResult,fmt(r.estimated_profit_margin_percent)+"%")+item(t.marketBreakEvenResult,money(r.break_even_selling_price))+item(t.marketSpreadResult,money(m.price_spread));
+  status.textContent=r.data_note;
+ }catch(error){console.error(error);status.textContent=t.marketCompareFailed;}
+ finally{button.disabled=false;}
+});
 setupRatings();fillCountries();$("city").value="Faisalabad";$("econCurrency").value="PKR";$("economicsResults").replaceChildren();setLanguage(language);setupResearchRatings();renderResearch();
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(err=>console.warn("Offline mode unavailable",err)));}
 </script></body></html>
