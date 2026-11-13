@@ -5,6 +5,7 @@ country-level discovery signal, not product-specific demand or sales data.
 """
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from statistics import median
 import xml.etree.ElementTree as ET
 
 import httpx
@@ -101,6 +102,29 @@ class SupplierOfferComparison(BaseModel):
     platform_fee_percent: float = Field(default=0, ge=0, le=100)
     marketing_cost: float = Field(default=0, ge=0, le=100000000)
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
+
+
+class MarketplaceListing(BaseModel):
+    marketplace: str = Field(min_length=2, max_length=80)
+    listing_title: str | None = Field(default=None, max_length=200)
+    price: float = Field(gt=0, le=100000000)
+    shipping_cost: float = Field(default=0, ge=0, le=100000000)
+    listing_url: str | None = Field(default=None, max_length=2048)
+    observed_sold_count: int | None = Field(default=None, ge=0)
+    captured_at: str | None = Field(default=None, max_length=64)
+
+
+class MarketplacePriceComparison(BaseModel):
+    product_name: str = Field(min_length=2, max_length=160)
+    country: str = Field(pattern=r"^(PK|AE|SA|OM|QA|KW|BH)$")
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    planned_selling_price: float = Field(gt=0, le=100000000)
+    supplier_cost: float = Field(ge=0, le=100000000)
+    supplier_shipping: float = Field(default=0, ge=0, le=100000000)
+    platform_fee_percent: float = Field(default=0, ge=0, le=100)
+    marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    returns_allowance: float = Field(default=0, ge=0, le=100000000)
+    listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
 
 
 class ProductEconomics(BaseModel):
@@ -255,6 +279,67 @@ def compare_supplier_offers(data: SupplierOfferComparison):
         "offers": results,
         "best_estimated_profit_supplier": results[0]["supplier_id"] if results else None,
         "data_note": "Comparison uses only submitted supplier prices and costs. Confirm current stock, quote validity, taxes, COD, returns and delivery terms with each supplier.",
+    }
+
+
+@app.post("/api/v1/marketplace-prices/compare")
+def compare_marketplace_prices(data: MarketplacePriceComparison):
+    """Compare user-observed marketplace listings against a supplier quote.
+
+    This endpoint deliberately does not scrape marketplaces or infer missing
+    sales counts. Listing prices and URLs are supplied by the user/import.
+    """
+    normalized = []
+    for listing in data.listings:
+        delivered_price = listing.price + listing.shipping_cost
+        normalized.append({
+            "marketplace": listing.marketplace,
+            "listing_title": listing.listing_title,
+            "item_price": round(listing.price, 2),
+            "shipping_cost": round(listing.shipping_cost, 2),
+            "observed_total_price": round(delivered_price, 2),
+            "listing_url": listing.listing_url,
+            "observed_sold_count": listing.observed_sold_count,
+            "captured_at": listing.captured_at,
+            "evidence_status": "user_supplied_or_imported_not_live_verified",
+        })
+    totals = [item["observed_total_price"] for item in normalized]
+    average = sum(totals) / len(totals)
+    lowest = min(totals)
+    highest = max(totals)
+    supplier_landed = data.supplier_cost + data.supplier_shipping
+    fee = data.planned_selling_price * data.platform_fee_percent / 100
+    total_cost = supplier_landed + fee + data.marketing_cost + data.returns_allowance
+    profit = data.planned_selling_price - total_cost
+    break_even = (
+        (supplier_landed + data.marketing_cost + data.returns_allowance)
+        / (1 - data.platform_fee_percent / 100)
+        if data.platform_fee_percent < 100 else None
+    )
+    return {
+        "product_name": data.product_name,
+        "country": data.country,
+        "currency": data.currency,
+        "listing_count": len(normalized),
+        "marketplace_prices": {
+            "lowest_delivered_price": round(lowest, 2),
+            "average_delivered_price": round(average, 2),
+            "median_delivered_price": round(median(totals), 2),
+            "highest_delivered_price": round(highest, 2),
+            "price_spread": round(highest - lowest, 2),
+        },
+        "supplier": {
+            "product_cost": round(data.supplier_cost, 2),
+            "shipping_cost": round(data.supplier_shipping, 2),
+            "landed_cost": round(supplier_landed, 2),
+        },
+        "planned_selling_price": round(data.planned_selling_price, 2),
+        "estimated_profit_per_order": round(profit, 2),
+        "estimated_profit_margin_percent": round(profit / data.planned_selling_price * 100, 2),
+        "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
+        "market_average_minus_supplier_landed_cost": round(average - supplier_landed, 2),
+        "listings": normalized,
+        "data_note": "Marketplace listings and supplier costs were entered or imported by the user. No live marketplace price, sales count, or supplier quote was fetched or independently verified. Delivered listing price includes the entered listing shipping cost; taxes, coupons, COD, returns and fees may differ.",
     }
 
 
