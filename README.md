@@ -64,6 +64,7 @@ Completed:
 - Multi-supplier directory API for Pakistan and GCC markets; includes Zambeel plus Tejaraa, KSA Drop, Wave Byte, ATSUM KSA and wholesale sources, with service coverage and integration-readiness metadata.
 - Supplier offer comparison API that ranks submitted quotes by landed cost and estimated profit, retaining source and capture-time provenance.
 - Supplier quote CSV template and bilingual frontend importer for up to three offers, with supplier/country validation and optional stock, delivery and source URL fields.
+- Marketplace listing CSV template and bilingual frontend importer for up to three observed listings, validating prices, shipping, source URLs and optional visible sold counts before populating the existing comparison form.
 - Bilingual marketplace price comparison form and API: compares up to three user-observed marketplace listings (including shipping) against supplier landed cost, planned selling price, fees, ads and returns allowance; preserves source URLs and unknown sold counts.
 - Bilingual frontend supplier directory connected to the API, with a local directory fallback if the API is unavailable.
 - Frontend profit calculator connected to the Cloudflare API.
