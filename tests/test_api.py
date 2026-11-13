@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+import api.main as api_module
 from api.main import app, parse_google_trends_rss
 
 client = TestClient(app)
@@ -96,3 +97,70 @@ def test_google_trends_rss_parser_preserves_source_metrics_and_news():
 def test_trends_endpoint_rejects_unsupported_country():
     response = client.get("/api/v1/trends?country=XX")
     assert response.status_code == 422
+
+
+
+def test_trends_endpoint_returns_country_feed_and_source_metadata(monkeypatch):
+    xml = """<?xml version="1.0"?>
+    <rss xmlns:ht="https://trends.google.com/trending/rss">
+      <channel><item>
+        <title>portable blender</title>
+        <pubDate>Mon, 10 Nov 2026 08:00:00 +0000</pubDate>
+        <ht:approx_traffic>2000+</ht:approx_traffic>
+      </item></channel>
+    </rss>"""
+
+    class FakeResponse:
+        text = xml
+
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url):
+            assert url == "https://trends.google.com/trending/rss?geo=PK"
+            return FakeResponse()
+
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.get("/api/v1/trends?country=PK")
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["country"] == "PK"
+    assert result["country_name"] == "Pakistan"
+    assert result["count"] == 1
+    assert result["trends"][0]["title"] == "portable blender"
+    assert result["trends"][0]["approx_traffic"] == "2000+"
+    assert result["fetched_at"]
+    assert "not product-specific" in result["data_note"]
+
+
+def test_trends_endpoint_reports_temporary_upstream_failure(monkeypatch):
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url):
+            import httpx
+            raise httpx.ConnectError("upstream unavailable")
+
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.get("/api/v1/trends?country=PK")
+
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.json()["detail"]
