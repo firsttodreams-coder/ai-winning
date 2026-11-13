@@ -397,23 +397,23 @@ function parseSupplierQuoteCsv(source){
    else field+=ch;
   }else if(ch==='"')quoted=true;
   else if(ch===","){row.push(field);field="";}
-  else if(ch==="\\n"){row.push(field.replace(/\\r$/,""));rows.push(row);row=[];field="";}
+  else if(ch==="\n"){row.push(field.replace(/\r$/,""));rows.push(row);row=[];field="";}
   else field+=ch;
  }
  if(quoted)throw new Error("Unclosed CSV quote");
- if(field.length||row.length){row.push(field.replace(/\\r$/,""));rows.push(row);}
+ if(field.length||row.length){row.push(field.replace(/\r$/,""));rows.push(row);}
  return rows.filter(item=>item.some(value=>String(value).trim()!==""));
 }
 $("downloadSupplierCsvTemplate").addEventListener("click",()=>{
- const csv="supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,source_url\\r\\n";
- const url=URL.createObjectURL(new Blob(["\\ufeff",csv],{type:"text/csv;charset=utf-8"}));
+ const csv="supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,source_url\r\n";
+ const url=URL.createObjectURL(new Blob(["\ufeff",csv],{type:"text/csv;charset=utf-8"}));
  const link=document.createElement("a");link.href=url;link.download="supplier-quotes-template.csv";link.click();URL.revokeObjectURL(url);
 });
 $("supplierQuoteCsv").addEventListener("change",async event=>{
  const input=event.target,file=input.files&&input.files[0],status=$("supplierQuoteStatus");
  if(!file)return;
  try{
-  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\\ufeff/,""));
+  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no quote rows");
   const headers=rows[0].map(value=>value.trim().toLowerCase());
   const required=["supplier_id","supplier_name","product_cost","shipping_cost","handling_cost","delivery_days","stock_quantity","source_url"];
@@ -434,7 +434,7 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
    $("supplierQuoteDelivery"+slot).value=delivery===null?"":String(delivery);
    $("supplierQuoteStock"+slot).value=stock===null?"":String(stock);
    $("supplierQuoteUrl"+slot).value=values.source_url||"";
-   if(values.source_url&&!/^https?:\\/\\//i.test(values.source_url))throw new Error("Invalid source URL");
+   if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("Invalid source URL");
   }
   status.textContent=translations[language].supplierQuoteCsvSuccess;
  }catch(error){console.warn(error);status.textContent=translations[language].supplierQuoteCsvError;}
