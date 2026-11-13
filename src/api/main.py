@@ -52,12 +52,51 @@ TREND_COUNTRIES = {
 GOOGLE_TRENDS_NAMESPACE = "{https://trends.google.com/trending/rss}"
 
 
+# Supplier directory metadata is curated from public provider information.
+# "api_access" describes public integration evidence, not an active connection.
+SUPPLIERS = [
+    {"id": "zambeel", "name": "Zambeel", "countries": ["PK", "AE", "SA"], "modes": ["dropshipping", "wholesale"], "website": "https://myzambeel.com/", "api_access": "account_or_partner_access_required", "catalog_access": "destination-specific catalogue; verify stock and price in account"},
+    {"id": "tejaraa", "name": "Tejaraa", "countries": ["AE", "SA"], "modes": ["dropshipping", "wholesale"], "website": "https://tejaraa.com/", "api_access": "api_advertised_contact_for_credentials", "catalog_access": "public storefront; supplier cost and commission shown separately"},
+    {"id": "ksa-drop", "name": "KSA Drop", "countries": ["SA", "AE"], "modes": ["dropshipping", "fulfillment"], "website": "https://ksadrop.com/", "api_access": "not_publicly_confirmed", "catalog_access": "seller account or onboarding required"},
+    {"id": "wave-byte", "name": "Wave Byte", "countries": ["AE", "SA", "OM"], "modes": ["dropshipping", "fulfillment"], "website": "https://wavebyte.ae/", "api_access": "store_connector_public_api_not_confirmed", "catalog_access": "seller account; dropshipping currently stated for UAE, KSA and Oman"},
+    {"id": "hhc-dropshipping", "name": "HHC Dropshipping", "countries": ["PK"], "modes": ["dropshipping", "fulfillment"], "website": "https://hhcdropshipping.com/", "api_access": "not_publicly_confirmed", "catalog_access": "supplier account and current terms require confirmation"},
+    {"id": "directstock", "name": "DirectStock", "countries": ["PK"], "modes": ["wholesale"], "website": "https://directstock.com.pk/products", "api_access": "not_publicly_confirmed", "catalog_access": "public product listings; dropshipping terms require seller confirmation"},
+    {"id": "souq-b2b", "name": "SouqB2B UAE", "countries": ["AE"], "modes": ["wholesale"], "website": "https://souqb2b.ae/en", "api_access": "not_publicly_confirmed", "catalog_access": "supplier/RFQ workflow; single-order dropshipping requires confirmation"},
+    {"id": "atsum-ksa", "name": "ATSUM KSA", "countries": ["SA"], "modes": ["dropshipping", "fulfillment", "wholesale"], "website": "https://www.myatsum.com/en", "api_access": "not_publicly_confirmed", "catalog_access": "catalogue availability and item-level dropship eligibility require confirmation"},
+]
+
+COUNTRY_NAMES = {"PK": "Pakistan", "AE": "United Arab Emirates", "SA": "Saudi Arabia", "OM": "Oman", "QA": "Qatar", "KW": "Kuwait", "BH": "Bahrain"}
+
+
 class OpportunitySignals(BaseModel):
     demand: int = Field(ge=1, le=10, description="Strength of demand evidence")
     competition: int = Field(ge=1, le=10, description="Competitive advantage; 10 means low competition")
     margin: int = Field(ge=1, le=10, description="Potential profit margin")
     shipping: int = Field(ge=1, le=10, description="Ease and affordability of shipping")
     trend: int = Field(ge=1, le=10, description="Strength of the observed trend")
+
+
+
+class SupplierOffer(BaseModel):
+    supplier_id: str = Field(min_length=2, max_length=60)
+    supplier_name: str = Field(min_length=2, max_length=120)
+    product_cost: float = Field(ge=0, le=100000000)
+    shipping_cost: float = Field(default=0, ge=0, le=100000000)
+    handling_cost: float = Field(default=0, ge=0, le=100000000)
+    delivery_days: int | None = Field(default=None, ge=0, le=365)
+    stock_quantity: int | None = Field(default=None, ge=0)
+    moq: int | None = Field(default=None, ge=1)
+    source_url: str | None = Field(default=None, max_length=2048)
+    captured_at: str | None = Field(default=None, max_length=64)
+
+
+class SupplierOfferComparison(BaseModel):
+    country: str = Field(pattern=r"^(PK|AE|SA|OM|QA|KW|BH)$")
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    selling_price: float = Field(gt=0, le=100000000)
+    platform_fee_percent: float = Field(default=0, ge=0, le=100)
+    marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
 
 
 class ProductEconomics(BaseModel):
@@ -149,6 +188,67 @@ async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN
             "marketplace sales, competitor counts, or verified buying demand. "
             "Traffic values are approximate buckets supplied by Google."
         ),
+    }
+
+
+
+@app.get("/api/v1/suppliers")
+def supplier_directory(country: str = Query(..., pattern=r"^(PK|AE|SA|OM|QA|KW|BH)$")):
+    """Return curated supplier options and honest integration-readiness metadata."""
+    suppliers = []
+    for supplier in SUPPLIERS:
+        if country not in supplier["countries"]:
+            continue
+        item = dict(supplier)
+        item["market_country"] = country
+        item["market_country_name"] = COUNTRY_NAMES[country]
+        item["directory_status"] = "listed_not_connected"
+        suppliers.append(item)
+    return {
+        "country": country,
+        "country_name": COUNTRY_NAMES[country],
+        "count": len(suppliers),
+        "suppliers": suppliers,
+        "data_note": "Directory information only. No supplier account is connected and no live price, stock, delivery promise, or order status is being fetched.",
+    }
+
+
+@app.post("/api/v1/supplier-offers/compare")
+def compare_supplier_offers(data: SupplierOfferComparison):
+    """Compare supplier offers entered/imported by the user; never invent live quotes."""
+    results = []
+    for offer in data.offers:
+        landed_cost = offer.product_cost + offer.shipping_cost + offer.handling_cost
+        platform_fee = data.selling_price * data.platform_fee_percent / 100
+        total_cost = landed_cost + platform_fee + data.marketing_cost
+        profit = data.selling_price - total_cost
+        results.append({
+            "supplier_id": offer.supplier_id,
+            "supplier_name": offer.supplier_name,
+            "currency": data.currency,
+            "product_cost": round(offer.product_cost, 2),
+            "shipping_cost": round(offer.shipping_cost, 2),
+            "handling_cost": round(offer.handling_cost, 2),
+            "landed_cost": round(landed_cost, 2),
+            "platform_fee": round(platform_fee, 2),
+            "marketing_cost": round(data.marketing_cost, 2),
+            "estimated_profit": round(profit, 2),
+            "profit_margin_percent": round((profit / data.selling_price) * 100, 2),
+            "delivery_days": offer.delivery_days,
+            "stock_quantity": offer.stock_quantity,
+            "moq": offer.moq,
+            "source_url": offer.source_url,
+            "captured_at": offer.captured_at,
+            "price_evidence": "user_supplied_or_imported_not_live_verified",
+        })
+    results.sort(key=lambda item: item["estimated_profit"], reverse=True)
+    return {
+        "country": data.country,
+        "currency": data.currency,
+        "selling_price": data.selling_price,
+        "offers": results,
+        "best_estimated_profit_supplier": results[0]["supplier_id"] if results else None,
+        "data_note": "Comparison uses only submitted supplier prices and costs. Confirm current stock, quote validity, taxes, COD, returns and delivery terms with each supplier.",
     }
 
 
