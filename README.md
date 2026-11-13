@@ -52,6 +52,7 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `POST /api/v1/product-economics` — estimate per-unit profit, margin, ROI, and break-even price
 - `GET /api/v1/suppliers?country=SA` — country-filtered supplier directory with honest API/catalog access status for Pakistan and GCC markets
 - `POST /api/v1/supplier-offers/compare` — rank user-entered/imported supplier quotes by landed cost and estimated profit, preserving source URL and capture time
+- `POST /api/v1/marketplace-prices/compare` — compare observed Daraz/Amazon/Noon/eBay listing prices (including entered shipping) against supplier cost and planned profit; preserves source links and unknown sales counts
 
 Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for nine supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
@@ -69,7 +70,7 @@ Completed:
 
 Remaining before production-grade product discovery:
 1. Connect approved supplier catalog/API accounts (starting with Zambeel, Tejaraa, KSA Drop and Wave Byte) for verified product prices, MOQ, shipping, stock and destination coverage where public or authorized access permits.
-2. Add permitted marketplace evidence adapters for current listing prices and seller/listing data; show source links and retrieval timestamps.
+2. Add permitted marketplace evidence adapters for current listing prices and seller/listing data; show source links and retrieval timestamps. The manual/import evidence comparison endpoint is now available as a first step.
 3. Build product-specific demand evidence rather than treating broad country trends as proof of product sales.
 4. Add optional AI-assisted analysis that cites its evidence and clearly separates estimates from verified facts.
 5. Add end-to-end deployment checks, data freshness handling and user testing on mobile and desktop.
