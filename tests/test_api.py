@@ -192,6 +192,7 @@ def test_supplier_offer_comparison_sorts_by_estimated_profit_and_keeps_provenanc
         "selling_price": 200,
         "platform_fee_percent": 5,
         "marketing_cost": 10,
+        "returns_allowance": 5,
         "offers": [
             {"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 90, "shipping_cost": 20, "source_url": "https://example.com/quote", "captured_at": "2026-11-13T10:00:00Z"},
             {"supplier_id": "tejaraa", "supplier_name": "Tejaraa", "product_cost": 80, "shipping_cost": 15, "handling_cost": 2, "delivery_days": 4, "stock_quantity": 8, "moq": 1}
@@ -201,7 +202,8 @@ def test_supplier_offer_comparison_sorts_by_estimated_profit_and_keeps_provenanc
     result = response.json()
     assert result["offers"][0]["supplier_id"] == "tejaraa"
     assert result["offers"][0]["landed_cost"] == 97
-    assert result["offers"][0]["estimated_profit"] == 83
+    assert result["offers"][0]["estimated_profit"] == 78
+    assert result["offers"][0]["returns_allowance"] == 5
     assert result["offers"][1]["price_evidence"] == "user_supplied_or_imported_not_live_verified"
 
 
