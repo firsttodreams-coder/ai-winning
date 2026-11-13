@@ -332,7 +332,7 @@ $("runMarketComparison").addEventListener("click",async()=>{
   listings.push({marketplace:$("marketplace"+i).value,price,shipping_cost:shipping,listing_url:url||null,observed_sold_count:sold});
  }
  if(!product||supplierCost===null||supplierCost<0||supplierShipping===null||supplierShipping<0||planned===null||planned<=0||fee===null||fee<0||fee>100||ads===null||ads<0||returns===null||returns<0||!listings.length){status.textContent=t.marketCompareNeed;return;}
- const country={"Pakistan":"PK","United Arab Emirates":"AE","Saudi Arabia":"SA","Oman":"OM","Qatar":"QA","Kuwait":"KW","Bahrain":"BH"}[$("country").value];
+ const country={"Pakistan":"PK","United Arab Emirates":"AE","Saudi Arabia":"SA","Oman":"OM","Qatar":"QA","Kuwait":"KW","Bahrain":"BH","United States":"US","United Kingdom":"GB","India":"IN","Canada":"CA","Australia":"AU","Germany":"DE"}[$("country").value];
  if(!country){status.textContent=t.marketCompareFailed;return;}
  const payload={product_name:product,country,currency:$("econCurrency").value,planned_selling_price:planned,supplier_cost:supplierCost,supplier_shipping:supplierShipping,platform_fee_percent:fee,marketing_cost:ads,returns_allowance:returns,listings};
  button.disabled=true;status.textContent=t.marketCompareLoading;box.innerHTML="";
