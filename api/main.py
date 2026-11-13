@@ -96,7 +96,7 @@ class SupplierOffer(BaseModel):
 
 
 class SupplierOfferComparison(BaseModel):
-    country: str = Field(pattern=r"^(PK|AE|SA|OM|QA|KW|BH)$")
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
     currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     selling_price: float = Field(gt=0, le=100000000)
     platform_fee_percent: float = Field(default=0, ge=0, le=100)
