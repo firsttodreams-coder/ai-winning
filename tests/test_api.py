@@ -301,3 +301,22 @@ def test_marketplace_price_comparison_accepts_all_frontend_market_countries():
     })
     assert response.status_code == 200
     assert response.json()["country"] == "US"
+
+
+def test_supplier_offer_comparison_rejects_currency_that_does_not_match_country():
+    response = client.post("/api/v1/supplier-offers/compare", json={
+        "country": "SA", "currency": "AED", "selling_price": 100,
+        "offers": [{"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 30}]
+    })
+    assert response.status_code == 422
+    assert "Currency for SA must be SAR" in response.text
+
+
+def test_marketplace_price_comparison_rejects_currency_that_does_not_match_country():
+    response = client.post("/api/v1/marketplace-prices/compare", json={
+        "product_name": "Phone stand", "country": "PK", "currency": "SAR",
+        "planned_selling_price": 1000, "supplier_cost": 300,
+        "listings": [{"marketplace": "Daraz", "price": 850}]
+    })
+    assert response.status_code == 422
+    assert "Currency for PK must be PKR" in response.text
