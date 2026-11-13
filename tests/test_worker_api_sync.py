@@ -10,3 +10,4 @@ def test_cloudflare_worker_uses_the_same_api_as_the_tested_application():
     assert '@app.get("/api/v1/trends")' in worker_api
     assert '@app.get("/api/v1/suppliers")' in worker_api
     assert '@app.post("/api/v1/supplier-offers/compare")' in worker_api
+    assert '@app.post("/api/v1/marketplace-prices/compare")' in worker_api
