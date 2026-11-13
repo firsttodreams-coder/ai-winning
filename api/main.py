@@ -48,6 +48,10 @@ TREND_COUNTRIES = {
     "CA": "Canada",
     "AU": "Australia",
     "DE": "Germany",
+    "OM": "Oman",
+    "QA": "Qatar",
+    "KW": "Kuwait",
+    "BH": "Bahrain",
 }
 GOOGLE_TRENDS_NAMESPACE = "{https://trends.google.com/trending/rss}"
 
@@ -158,7 +162,7 @@ def scoring_model():
 
 
 @app.get("/api/v1/trends")
-async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE)$")):
+async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")):
     """Return Google's public top 10 Trending Now RSS entries for a supported country."""
     feed_url = f"https://trends.google.com/trending/rss?geo={country}"
     try:
