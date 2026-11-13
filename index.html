@@ -431,7 +431,7 @@ $("marketListingCsv").addEventListener("change",async event=>{
    const slot=i+1,marketplace=values.marketplace,price=Number(values.price);
    const shipping=values.shipping_cost===""?0:Number(values.shipping_cost);
    const sold=values.observed_sold_count===""?null:Number(values.observed_sold_count);
-   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||(values.listing_url&&!/^https?:\/\//i.test(values.listing_url)))throw new Error("Invalid listing row");
+   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||(values.listing_url&&!/^https?:\/\//i.test(values.listing_url))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("Invalid listing row");
    const select=$("marketplace"+slot);
    if(![...select.options].some(option=>option.value===marketplace||option.text===marketplace)){
     const option=document.createElement("option");option.value=marketplace;option.textContent=marketplace;select.appendChild(option);
@@ -439,7 +439,8 @@ $("marketListingCsv").addEventListener("change",async event=>{
    select.value=marketplace;
    $("marketPrice"+slot).value=String(price);
    $("marketShip"+slot).value=String(shipping);
-   $("marketUrl"+slot).value=values.listing_url||"";\n   $("marketPrice"+slot).dataset.capturedAt=values.captured_at||"";
+   $("marketUrl"+slot).value=values.listing_url||"";
+   $("marketPrice"+slot).dataset.capturedAt=values.captured_at||"";
    $("marketSold"+slot).value=sold===null?"":String(sold);
   }
   status.textContent=translations[language].marketCsvSuccess;
@@ -475,7 +476,8 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
    $("supplierQuoteHandling"+slot).value=String(handling);
    $("supplierQuoteDelivery"+slot).value=delivery===null?"":String(delivery);
    $("supplierQuoteStock"+slot).value=stock===null?"":String(stock);
-   $("supplierQuoteUrl"+slot).value=values.source_url||"";\n   $("supplierQuoteCost"+slot).dataset.capturedAt=values.captured_at||"";
+   $("supplierQuoteUrl"+slot).value=values.source_url||"";
+   $("supplierQuoteCost"+slot).dataset.capturedAt=values.captured_at||"";
    if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("Invalid source URL");
   }
   status.textContent=translations[language].supplierQuoteCsvSuccess;
