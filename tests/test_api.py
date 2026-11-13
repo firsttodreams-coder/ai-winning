@@ -312,6 +312,24 @@ def test_supplier_offer_comparison_rejects_currency_that_does_not_match_country(
     assert "Currency for SA must be SAR" in response.text
 
 
+def test_supplier_offer_comparison_rejects_known_supplier_outside_its_market():
+    response = client.post("/api/v1/supplier-offers/compare", json={
+        "country": "SA", "currency": "SAR", "selling_price": 100,
+        "offers": [{"supplier_id": "directstock", "supplier_name": "DirectStock", "product_cost": 30}]
+    })
+    assert response.status_code == 422
+    assert "Supplier directstock is not listed for market SA" in response.text
+
+
+def test_supplier_offer_comparison_allows_custom_supplier_id():
+    response = client.post("/api/v1/supplier-offers/compare", json={
+        "country": "SA", "currency": "SAR", "selling_price": 100,
+        "offers": [{"supplier_id": "my-local-supplier", "supplier_name": "My Local Supplier", "product_cost": 30}]
+    })
+    assert response.status_code == 200
+    assert response.json()["offers"][0]["supplier_id"] == "my-local-supplier"
+
+
 def test_marketplace_price_comparison_rejects_currency_that_does_not_match_country():
     response = client.post("/api/v1/marketplace-prices/compare", json={
         "product_name": "Phone stand", "country": "PK", "currency": "SAR",
