@@ -66,7 +66,7 @@ Completed:
 - Supplier quote CSV template and bilingual frontend importer for up to three offers, with supplier/country validation and optional stock, delivery and source URL fields.
 - Marketplace listing CSV template and bilingual frontend importer for up to three observed listings, validating prices, shipping, source URLs and optional visible sold counts before populating the existing comparison form.
 - Supplier and marketplace comparison responses now include source-domain and evidence-freshness metadata (`fresh`, `aging`, `stale`, `unknown`, or timestamp warnings) when a capture timestamp is supplied. This describes evidence age only; it does not independently verify the source or fetch live prices.
-- Added automated unit tests for missing, fresh, stale, invalid, future-dated and non-HTTP evidence metadata.
+- Added automated unit tests for missing, fresh, stale, invalid, future-dated and non-HTTP evidence metadata. GitHub Actions now runs the API test suite on pushes to `main` and pull requests targeting `main`.
 - Bilingual marketplace price comparison form and API: compares up to three user-observed marketplace listings (including shipping) against supplier landed cost, planned selling price, fees, ads and returns allowance; preserves source URLs and unknown sold counts.
 - Bilingual frontend supplier directory connected to the API, with a local directory fallback if the API is unavailable.
 - Frontend profit calculator connected to the Cloudflare API.
