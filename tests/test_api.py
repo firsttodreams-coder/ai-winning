@@ -6,6 +6,56 @@ from api.main import app, parse_google_trends_rss
 client = TestClient(app)
 
 
+
+
+def test_catalog_match_suggests_similar_titles_and_marks_review_required():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [
+            {"product_id": "s1", "title": "Portable USB Rechargeable Blender"},
+            {"product_id": "s2", "title": "LED Motion Sensor Night Light"}
+        ],
+        "marketplace_products": [
+            {"product_id": "m1", "title": "USB Portable Rechargeable Blender"},
+            {"product_id": "m2", "title": "Ceramic Coffee Mug"}
+        ],
+        "minimum_similarity": 0.4
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["match_count"] == 1
+    assert result["matches"][0]["supplier_product"]["product_id"] == "s1"
+    assert result["matches"][0]["marketplace_product"]["product_id"] == "m1"
+    assert result["matches"][0]["review_required"] is True
+    assert "s2" in result["unmatched_supplier_product_ids"]
+    assert "m2" in result["unmatched_marketplace_product_ids"]
+
+
+def test_catalog_match_rejects_empty_catalog_and_invalid_threshold():
+    empty = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [],
+        "marketplace_products": [{"product_id": "m1", "title": "Coffee Mug"}]
+    })
+    invalid = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "Coffee Mug"}],
+        "marketplace_products": [{"product_id": "m1", "title": "Coffee Mug"}],
+        "minimum_similarity": 1.5
+    })
+    assert empty.status_code == 422
+    assert invalid.status_code == 422
+
+
+def test_catalog_match_uses_one_to_one_assignment():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "USB desk fan"}],
+        "marketplace_products": [
+            {"product_id": "m1", "title": "USB desk fan"},
+            {"product_id": "m2", "title": "USB desk fan"}
+        ],
+        "minimum_similarity": 0.5
+    })
+    assert response.status_code == 200
+    assert response.json()["match_count"] == 1
+
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
