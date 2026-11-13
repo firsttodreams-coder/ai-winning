@@ -62,7 +62,7 @@ SUPPLIERS = [
     {"id": "zambeel", "name": "Zambeel", "countries": ["PK", "AE", "SA"], "modes": ["dropshipping", "wholesale"], "website": "https://myzambeel.com/", "api_access": "account_or_partner_access_required", "catalog_access": "destination-specific catalogue; verify stock and price in account"},
     {"id": "tejaraa", "name": "Tejaraa", "countries": ["AE", "SA"], "modes": ["dropshipping", "wholesale"], "website": "https://tejaraa.com/", "api_access": "api_advertised_contact_for_credentials", "catalog_access": "public storefront; supplier cost and commission shown separately"},
     {"id": "ksa-drop", "name": "KSA Drop", "countries": ["SA", "AE"], "modes": ["dropshipping", "fulfillment"], "website": "https://ksadrop.com/", "api_access": "not_publicly_confirmed", "catalog_access": "seller account or onboarding required"},
-    {"id": "wave-byte", "name": "Wave Byte", "countries": ["AE", "SA", "OM"], "modes": ["dropshipping", "fulfillment"], "website": "https://wavebyte.ae/", "api_access": "store_connector_public_api_not_confirmed", "catalog_access": "seller account; dropshipping currently stated for UAE, KSA and Oman"},
+    {"id": "wave-byte", "name": "Wave Byte", "countries": ["AE", "SA", "OM", "QA", "KW", "BH"], "modes": ["dropshipping", "fulfillment"], "service_by_country": {"AE": ["dropshipping", "fulfillment"], "SA": ["dropshipping", "fulfillment"], "OM": ["dropshipping", "fulfillment"], "QA": ["fulfillment"], "KW": ["fulfillment"], "BH": ["fulfillment"]}, "website": "https://wavebyte.ae/", "api_access": "store_connector_public_api_not_confirmed", "catalog_access": "Seller account required; dropshipping in UAE, KSA and Oman; fulfillment only in Qatar, Kuwait and Bahrain."},
     {"id": "hhc-dropshipping", "name": "HHC Dropshipping", "countries": ["PK"], "modes": ["dropshipping", "fulfillment"], "website": "https://hhcdropshipping.com/", "api_access": "not_publicly_confirmed", "catalog_access": "supplier account and current terms require confirmation"},
     {"id": "directstock", "name": "DirectStock", "countries": ["PK"], "modes": ["wholesale"], "website": "https://directstock.com.pk/products", "api_access": "not_publicly_confirmed", "catalog_access": "public product listings; dropshipping terms require seller confirmation"},
     {"id": "souq-b2b", "name": "SouqB2B UAE", "countries": ["AE"], "modes": ["wholesale"], "website": "https://souqb2b.ae/en", "api_access": "not_publicly_confirmed", "catalog_access": "supplier/RFQ workflow; single-order dropshipping requires confirmation"},
@@ -206,6 +206,8 @@ def supplier_directory(country: str = Query(..., pattern=r"^(PK|AE|SA|OM|QA|KW|B
         item = dict(supplier)
         item["market_country"] = country
         item["market_country_name"] = COUNTRY_NAMES[country]
+        item["modes"] = item.get("service_by_country", {}).get(country, item["modes"])
+        item.pop("service_by_country", None)
         item["directory_status"] = "listed_not_connected"
         suppliers.append(item)
     return {
