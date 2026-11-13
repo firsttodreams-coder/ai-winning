@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 app = FastAPI(
     title="AI Winning Product Finder API",
@@ -72,6 +72,19 @@ SUPPLIERS = [
 ]
 
 COUNTRY_NAMES = {"PK": "Pakistan", "AE": "United Arab Emirates", "SA": "Saudi Arabia", "OM": "Oman", "QA": "Qatar", "KW": "Kuwait", "BH": "Bahrain"}
+COUNTRY_CURRENCIES = {
+    "PK": "PKR", "US": "USD", "GB": "GBP", "AE": "AED", "SA": "SAR",
+    "IN": "INR", "CA": "CAD", "AU": "AUD", "DE": "EUR", "OM": "OMR",
+    "QA": "QAR", "KW": "KWD", "BH": "BHD",
+}
+
+
+def _validate_market_currency(country: str, currency: str) -> None:
+    expected = COUNTRY_CURRENCIES[country]
+    if currency != expected:
+        raise ValueError(
+            f"Currency for {country} must be {expected}; convert the entered prices before comparing."
+        )
 
 
 class OpportunitySignals(BaseModel):
@@ -146,6 +159,11 @@ class SupplierOfferComparison(BaseModel):
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
 
+    @model_validator(mode="after")
+    def currency_matches_country(self):
+        _validate_market_currency(self.country, self.currency)
+        return self
+
 
 class MarketplaceListing(BaseModel):
     marketplace: str = Field(min_length=2, max_length=80)
@@ -168,6 +186,11 @@ class MarketplacePriceComparison(BaseModel):
     marketing_cost: float = Field(default=0, ge=0, le=100000000)
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
     listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def currency_matches_country(self):
+        _validate_market_currency(self.country, self.currency)
+        return self
 
 
 class ProductEconomics(BaseModel):
