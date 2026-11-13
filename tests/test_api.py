@@ -164,3 +164,51 @@ def test_trends_endpoint_reports_temporary_upstream_failure(monkeypatch):
 
     assert response.status_code == 503
     assert "temporarily unavailable" in response.json()["detail"]
+
+
+def test_supplier_directory_keeps_multiple_gcc_suppliers_and_exposes_connection_status():
+    response = client.get("/api/v1/suppliers?country=SA")
+    assert response.status_code == 200
+    result = response.json()
+    ids = {supplier["id"] for supplier in result["suppliers"]}
+    assert {"zambeel", "tejaraa", "ksa-drop", "wave-byte", "atsum-ksa"} <= ids
+    assert all(supplier["directory_status"] == "listed_not_connected" for supplier in result["suppliers"])
+    assert "no supplier account is connected" in result["data_note"].lower()
+
+
+def test_supplier_directory_supports_gcc_fulfillment_markets():
+    response = client.get("/api/v1/suppliers?country=BH")
+    assert response.status_code == 200
+    assert response.json()["country_name"] == "Bahrain"
+    wave_byte = next(item for item in response.json()["suppliers"] if item["id"] == "wave-byte")
+    assert "fulfillment" in wave_byte["modes"]
+    assert "dropshipping" not in wave_byte["modes"]
+
+
+def test_supplier_offer_comparison_sorts_by_estimated_profit_and_keeps_provenance():
+    response = client.post("/api/v1/supplier-offers/compare", json={
+        "country": "SA",
+        "currency": "SAR",
+        "selling_price": 200,
+        "platform_fee_percent": 5,
+        "marketing_cost": 10,
+        "offers": [
+            {"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 90, "shipping_cost": 20, "source_url": "https://example.com/quote", "captured_at": "2026-11-13T10:00:00Z"},
+            {"supplier_id": "tejaraa", "supplier_name": "Tejaraa", "product_cost": 80, "shipping_cost": 15, "handling_cost": 2, "delivery_days": 4, "stock_quantity": 8, "moq": 1}
+        ]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["offers"][0]["supplier_id"] == "tejaraa"
+    assert result["offers"][0]["landed_cost"] == 97
+    assert result["offers"][0]["estimated_profit"] == 83
+    assert result["offers"][1]["price_evidence"] == "user_supplied_or_imported_not_live_verified"
+
+
+def test_supplier_offer_comparison_rejects_empty_offers_and_invalid_market():
+    empty = client.post("/api/v1/supplier-offers/compare", json={
+        "country": "SA", "currency": "SAR", "selling_price": 100, "offers": []
+    })
+    invalid = client.get("/api/v1/suppliers?country=XX")
+    assert empty.status_code == 422
+    assert invalid.status_code == 422
