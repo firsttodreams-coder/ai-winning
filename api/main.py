@@ -438,7 +438,7 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
 def match_catalog_products(data: ProductMatchRequest):
     """Match imported supplier and marketplace titles; scores are heuristic, not verified identity."""
     def normalize(title: str) -> str:
-        return " ".join(re.findall(r"[\\w]+", title.casefold()))
+        return " ".join(re.findall(r"[\w]+", title.casefold()))
 
     def similarity(left: str, right: str) -> float:
         left_norm, right_norm = normalize(left), normalize(right)
