@@ -252,8 +252,17 @@ const localSupplierDirectory={
   {name:"ClickShoppy Business",url:"https://clickshoppy.com/",kind:"wholesale",en:"Saudi multi-seller marketplace with a wholesale section and business RFQ tools; contact sellers to confirm reseller or dropship terms.",ur:"سعودی ملٹی سیلر مارکیٹ پلیس جس میں ہول سیل سیکشن اور بزنس RFQ ٹولز ہیں؛ ری سیل یا ڈراپ شپنگ شرائط سیلر سے معلوم کریں۔"}
  ]
 };
+const supplierQuoteFallback={
+ PK:[["zambeel","Zambeel"],["hhc-dropshipping","HHC Dropshipping"],["directstock","DirectStock"]],
+ AE:[["zambeel","Zambeel"],["tejaraa","Tejaraa"],["ksa-drop","KSA Drop"],["wave-byte","Wave Byte"],["souq-b2b","SouqB2B UAE"]],
+ SA:[["zambeel","Zambeel"],["tejaraa","Tejaraa"],["ksa-drop","KSA Drop"],["wave-byte","Wave Byte"],["atsum-ksa","ATSUM KSA"]],
+ OM:[["wave-byte","Wave Byte"]],
+ QA:[["wave-byte","Wave Byte"]],
+ KW:[["wave-byte","Wave Byte"]],
+ BH:[["wave-byte","Wave Byte"]]
+};
 function populateSupplierQuoteSelects(suppliers){
- const available=Array.isArray(suppliers)?suppliers:[];
+ const available=Array.isArray(suppliers)&&suppliers.length?suppliers:(supplierQuoteFallback[({"Pakistan":"PK","United Arab Emirates":"AE","Saudi Arabia":"SA","Oman":"OM","Qatar":"QA","Kuwait":"KW","Bahrain":"BH"})[$("country").value]]||[]).map(([id,name])=>({id,name}));
  for(let i=1;i<=3;i++){
   const select=$("supplierQuote"+i);if(!select)continue;
   const previous=select.value;
@@ -279,13 +288,17 @@ async function renderSupplierDirectory(country){
   if(!response.ok)throw new Error("Supplier directory API "+response.status);
   const data=await response.json();
   populateSupplierQuoteSelects(data.suppliers);
-  if(!Array.isArray(data.suppliers)||!data.suppliers.length){renderFallback();return;}
+  if(!Array.isArray(data.suppliers)||!data.suppliers.length){populateSupplierQuoteSelects([]);renderFallback();return;}
   box.innerHTML=data.suppliers.map(item=>{
    const modes=(item.modes||[]).map(mode=>kindLabel[mode]||mode).join(" · ");
    const apiStatus=item.api_access==="api_advertised_contact_for_credentials"?(language==="ur"?"API کا ذکر موجود؛ رسائی کی تفصیل درکار":"API advertised; access details required"):item.api_access==="store_connector_public_api_not_confirmed"?(language==="ur"?"اسٹور کنیکٹر؛ پبلک API کی تصدیق نہیں":"Store connector; public API unconfirmed"):(language==="ur"?"لائیو API کنکشن کی تصدیق نہیں":"Live API connection unconfirmed");
    return '<article class="supplier-card"><div class="supplier-kind">'+escapeResearchText(modes)+'</div><h4>'+escapeResearchText(item.name)+'</h4><p>'+escapeResearchText(item.catalog_access||"")+'</p><p class="meta">'+escapeResearchText(language==="ur"?"انٹیگریشن اسٹیٹس: ":"Integration status: ")+escapeResearchText(apiStatus)+'</p><a href="'+item.website+'" target="_blank" rel="noopener noreferrer">'+escapeResearchText(t.supplierOpen)+' ↗</a></article>';
   }).join("")+'<p class="discovery-note">'+escapeResearchText(language==="ur"?"یہ ڈائریکٹری ہے، لائیو اسٹاک یا قیمت کا فیڈ نہیں۔ سپلائر کی موجودہ قیمت، اسٹاک، ڈیلیوری اور شرائط کی تصدیق کریں۔":"Directory only — not a live stock or price feed. Confirm current supplier prices, stock, delivery and terms.")+'</p>';
- }catch(error){console.warn(error);renderFallback();}
+ }catch(error){
+  console.warn(error);
+  populateSupplierQuoteSelects([]);
+  renderFallback();
+ }
 }
 function researchMarket(){
  const country=$("country").value,city=$("city").value,category=$("category").value,cat=category==="all"?"trending products":category;
