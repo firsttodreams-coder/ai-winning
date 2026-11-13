@@ -101,6 +101,7 @@ class SupplierOfferComparison(BaseModel):
     selling_price: float = Field(gt=0, le=100000000)
     platform_fee_percent: float = Field(default=0, ge=0, le=100)
     marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    returns_allowance: float = Field(default=0, ge=0, le=100000000)
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
 
 
@@ -250,7 +251,7 @@ def compare_supplier_offers(data: SupplierOfferComparison):
     for offer in data.offers:
         landed_cost = offer.product_cost + offer.shipping_cost + offer.handling_cost
         platform_fee = data.selling_price * data.platform_fee_percent / 100
-        total_cost = landed_cost + platform_fee + data.marketing_cost
+        total_cost = landed_cost + platform_fee + data.marketing_cost + data.returns_allowance
         profit = data.selling_price - total_cost
         results.append({
             "supplier_id": offer.supplier_id,
@@ -262,6 +263,7 @@ def compare_supplier_offers(data: SupplierOfferComparison):
             "landed_cost": round(landed_cost, 2),
             "platform_fee": round(platform_fee, 2),
             "marketing_cost": round(data.marketing_cost, 2),
+            "returns_allowance": round(data.returns_allowance, 2),
             "estimated_profit": round(profit, 2),
             "profit_margin_percent": round((profit / data.selling_price) * 100, 2),
             "delivery_days": offer.delivery_days,
