@@ -116,7 +116,7 @@ class MarketplaceListing(BaseModel):
 
 class MarketplacePriceComparison(BaseModel):
     product_name: str = Field(min_length=2, max_length=160)
-    country: str = Field(pattern=r"^(PK|AE|SA|OM|QA|KW|BH)$")
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
     currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     planned_selling_price: float = Field(gt=0, le=100000000)
     supplier_cost: float = Field(ge=0, le=100000000)
