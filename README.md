@@ -53,13 +53,23 @@ A first FastAPI scoring service is available in `api/main.py`.
 
 Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for nine supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
-## Planned development
+## Next development milestones
 
-1. Connect the frontend calculator to the API after selecting a backend host.
-2. Show the connected country-level Google Trends feed in the bilingual frontend with source timestamps and clear evidence limitations.
-3. Add permitted marketplace evidence adapters and country-aware currency/shipping filters, including verified supplier pricing, MOQ, shipping and seller counts where source access permits.
-4. Add optional AI-assisted analysis with citations and a no-key/local mode where feasible.
-5. Add saved searches, comparison, export, and further integration tests.
+Completed:
+- Frontend profit calculator connected to the Cloudflare API.
+- Bilingual country-level Google Trends panel connected with source timestamps and evidence limitations.
+- Product research scoring connected to the transparent scoring API.
+- Supplier-versus-market price comparison calculator, saved research, comparison and CSV export.
+- Cloudflare Worker API kept in sync with the tested FastAPI application, with a regression test.
+
+Remaining before production-grade product discovery:
+1. Add permitted marketplace evidence adapters for current listing prices and seller/listing data; show source links and retrieval timestamps.
+2. Add supplier-specific verified price, MOQ, shipping, stock and destination coverage where public or authorized access permits.
+3. Build product-specific demand evidence rather than treating broad country trends as proof of product sales.
+4. Add optional AI-assisted analysis that cites its evidence and clearly separates estimates from verified facts.
+5. Add end-to-end deployment checks, data freshness handling and user testing on mobile and desktop.
+
+No marketplace sales, competitor counts, supplier stock or AI-generated winning-product claims should be displayed as verified unless a source actually provides that evidence.
 
 ## License
 
