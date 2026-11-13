@@ -212,3 +212,25 @@ def test_supplier_offer_comparison_rejects_empty_offers_and_invalid_market():
     invalid = client.get("/api/v1/suppliers?country=XX")
     assert empty.status_code == 422
     assert invalid.status_code == 422
+
+
+def test_trends_endpoint_accepts_additional_gcc_markets(monkeypatch):
+    xml = """<?xml version="1.0"?><rss><channel><item><title>GCC trend</title></item></channel></rss>"""
+    class FakeResponse:
+        text = xml
+        def raise_for_status(self):
+            return None
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def get(self, url):
+            assert url == "https://trends.google.com/trending/rss?geo=OM"
+            return FakeResponse()
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.get("/api/v1/trends?country=OM")
+    assert response.status_code == 200
+    assert response.json()["country_name"] == "Oman"
