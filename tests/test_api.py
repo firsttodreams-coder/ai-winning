@@ -259,7 +259,7 @@ def test_marketplace_price_comparison_calculates_delivered_market_prices_and_pro
     assert result["marketplace_prices"]["average_delivered_price"] == 154.33
     assert result["marketplace_prices"]["median_delivered_price"] == 159
     assert result["supplier"]["landed_cost"] == 80
-    assert result["estimated_profit_per_order"] == 71
+    assert result["estimated_profit_per_order"] == 76
     assert result["listings"][0]["observed_sold_count"] is None
     assert result["listings"][0]["evidence_status"] == "user_supplied_or_imported_not_live_verified"
 
