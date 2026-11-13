@@ -6,6 +6,7 @@ country-level discovery signal, not product-specific demand or sales data.
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from statistics import median
+from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
 import httpx
@@ -80,6 +81,47 @@ class OpportunitySignals(BaseModel):
     shipping: int = Field(ge=1, le=10, description="Ease and affordability of shipping")
     trend: int = Field(ge=1, le=10, description="Strength of the observed trend")
 
+
+
+def _evidence_metadata(source_url: str | None, captured_at: str | None) -> dict:
+    """Describe provenance and timestamp freshness without claiming verification."""
+    source_domain = None
+    if source_url:
+        try:
+            parsed_url = urlsplit(source_url.strip())
+            if parsed_url.scheme.lower() in {"http", "https"} and parsed_url.hostname:
+                source_domain = parsed_url.hostname.lower()
+        except ValueError:
+            source_domain = None
+
+    metadata = {
+        "source_domain": source_domain,
+        "captured_at": captured_at,
+        "evidence_age_hours": None,
+        "freshness_status": "unknown",
+    }
+    if not captured_at:
+        return metadata
+
+    try:
+        parsed_time = datetime.fromisoformat(captured_at.strip().replace("Z", "+00:00"))
+        if parsed_time.tzinfo is None:
+            parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+        age_hours = (datetime.now(timezone.utc) - parsed_time.astimezone(timezone.utc)).total_seconds() / 3600
+    except (TypeError, ValueError, OverflowError):
+        metadata["freshness_status"] = "invalid_timestamp"
+        return metadata
+
+    metadata["evidence_age_hours"] = round(age_hours, 2)
+    if age_hours < -0.05:
+        metadata["freshness_status"] = "future_timestamp"
+    elif age_hours <= 24:
+        metadata["freshness_status"] = "fresh"
+    elif age_hours <= 168:
+        metadata["freshness_status"] = "aging"
+    else:
+        metadata["freshness_status"] = "stale"
+    return metadata
 
 
 class SupplierOffer(BaseModel):
@@ -272,6 +314,7 @@ def compare_supplier_offers(data: SupplierOfferComparison):
             "source_url": offer.source_url,
             "captured_at": offer.captured_at,
             "price_evidence": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(offer.source_url, offer.captured_at),
         })
     results.sort(key=lambda item: item["estimated_profit"], reverse=True)
     return {
@@ -304,6 +347,7 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
             "observed_sold_count": listing.observed_sold_count,
             "captured_at": listing.captured_at,
             "evidence_status": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(listing.listing_url, listing.captured_at),
         })
     totals = [item["observed_total_price"] for item in normalized]
     average = sum(totals) / len(totals)
