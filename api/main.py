@@ -160,8 +160,15 @@ class SupplierOfferComparison(BaseModel):
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
 
     @model_validator(mode="after")
-    def currency_matches_country(self):
+    def validate_market_and_currency(self):
         _validate_market_currency(self.country, self.currency)
+        known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
+        for offer in self.offers:
+            supplier = known_suppliers.get(offer.supplier_id)
+            if supplier and self.country not in supplier["countries"]:
+                raise ValueError(
+                    f"Supplier {offer.supplier_id} is not listed for market {self.country}."
+                )
         return self
 
 
