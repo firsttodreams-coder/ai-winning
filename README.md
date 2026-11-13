@@ -50,12 +50,17 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `GET /api/v1/scoring-model` — transparent scoring weights
 - `POST /api/v1/score` — score five user-provided signals from 1 to 10
 - `POST /api/v1/product-economics` — estimate per-unit profit, margin, ROI, and break-even price
+- `GET /api/v1/suppliers?country=SA` — country-filtered supplier directory with honest API/catalog access status for Pakistan and GCC markets
+- `POST /api/v1/supplier-offers/compare` — rank user-entered/imported supplier quotes by landed cost and estimated profit, preserving source URL and capture time
 
 Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for nine supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Next development milestones
 
 Completed:
+- Multi-supplier directory API for Pakistan and GCC markets; includes Zambeel plus Tejaraa, KSA Drop, Wave Byte, ATSUM KSA and wholesale sources, with service coverage and integration-readiness metadata.
+- Supplier offer comparison API that ranks submitted quotes by landed cost and estimated profit, retaining source and capture-time provenance.
+- Bilingual frontend supplier directory connected to the API, with a local directory fallback if the API is unavailable.
 - Frontend profit calculator connected to the Cloudflare API.
 - Bilingual country-level Google Trends panel connected with source timestamps and evidence limitations.
 - Product research scoring connected to the transparent scoring API.
@@ -63,8 +68,8 @@ Completed:
 - Cloudflare Worker API kept in sync with the tested FastAPI application, with a regression test.
 
 Remaining before production-grade product discovery:
-1. Add permitted marketplace evidence adapters for current listing prices and seller/listing data; show source links and retrieval timestamps.
-2. Add supplier-specific verified price, MOQ, shipping, stock and destination coverage where public or authorized access permits.
+1. Connect approved supplier catalog/API accounts (starting with Zambeel, Tejaraa, KSA Drop and Wave Byte) for verified product prices, MOQ, shipping, stock and destination coverage where public or authorized access permits.
+2. Add permitted marketplace evidence adapters for current listing prices and seller/listing data; show source links and retrieval timestamps.
 3. Build product-specific demand evidence rather than treating broad country trends as proof of product sales.
 4. Add optional AI-assisted analysis that cites its evidence and clearly separates estimates from verified facts.
 5. Add end-to-end deployment checks, data freshness handling and user testing on mobile and desktop.
