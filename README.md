@@ -42,6 +42,8 @@ Open `index.html` in a modern browser, or publish the repository with GitHub Pag
 
 The GitHub Pages deployment workflow publishes the frontend automatically when changes are pushed to `main`.
 
+Supplier connector requirements and public evidence are tracked in [docs/SUPPLIER_CONNECTOR_READINESS.md](docs/SUPPLIER_CONNECTOR_READINESS.md).
+
 ## Backend API
 
 A first FastAPI scoring service is available in `api/main.py`.
