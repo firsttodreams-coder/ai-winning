@@ -438,11 +438,11 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
 def match_catalog_products(data: ProductMatchRequest):
     """Suggest conservative catalogue matches; conflicting variants are never auto-matched."""
     def normalize(value: str) -> str:
-        return " ".join(re.findall(r"[\\w]+", value.casefold()))
+        return " ".join(re.findall(r"[\w]+", value.casefold()))
 
     def numeric_fingerprints(value: str) -> set[str]:
         # Numbers often encode model, size, capacity or pack-count variants.
-        return set(re.findall(r"\\d+(?:\\.\\d+)?", normalize(value)))
+        return set(re.findall(r"\d+(?:\.\d+)?", normalize(value)))
 
     def similarity(left: CatalogProduct, right: CatalogProduct) -> tuple[float, str | None]:
         left_title, right_title = normalize(left.title), normalize(right.title)
