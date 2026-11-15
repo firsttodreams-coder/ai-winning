@@ -202,6 +202,30 @@ class MarketplacePriceComparison(BaseModel):
         return self
 
 
+class UnifiedProfitabilityComparison(BaseModel):
+    product_name: str = Field(min_length=2, max_length=160)
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    planned_selling_price: float = Field(gt=0, le=100000000)
+    platform_fee_percent: float = Field(default=0, ge=0, le=100)
+    marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    returns_allowance: float = Field(default=0, ge=0, le=100000000)
+    offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
+    listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_market_and_currency(self):
+        _validate_market_currency(self.country, self.currency)
+        known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
+        for offer in self.offers:
+            supplier = known_suppliers.get(offer.supplier_id)
+            if supplier and self.country not in supplier["countries"]:
+                raise ValueError(
+                    f"Supplier {offer.supplier_id} is not listed for market {self.country}."
+                )
+        return self
+
+
 class CatalogProduct(BaseModel):
     product_id: str = Field(min_length=1, max_length=80)
     title: str = Field(min_length=2, max_length=200)
@@ -445,6 +469,99 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
         "market_average_minus_supplier_landed_cost": round(average - supplier_landed, 2),
         "listings": normalized,
         "data_note": "Marketplace listings and supplier costs were entered or imported by the user. No live marketplace price, sales count, or supplier quote was fetched or independently verified. Delivered listing price includes the entered listing shipping cost; taxes, coupons, COD, returns and fees may differ.",
+    }
+
+
+@app.post("/api/v1/product-profitability/compare")
+def compare_product_profitability(data: UnifiedProfitabilityComparison):
+    """Join entered supplier offers with observed marketplace prices for one product."""
+    listing_rows = []
+    for listing in data.listings:
+        delivered = listing.price + listing.shipping_cost
+        listing_rows.append({
+            "marketplace": listing.marketplace,
+            "listing_title": listing.listing_title,
+            "item_price": round(listing.price, 2),
+            "shipping_cost": round(listing.shipping_cost, 2),
+            "observed_total_price": round(delivered, 2),
+            "listing_url": listing.listing_url,
+            "observed_sold_count": listing.observed_sold_count,
+            "captured_at": listing.captured_at,
+            "evidence_status": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(listing.listing_url, listing.captured_at),
+        })
+
+    market_prices = [row["observed_total_price"] for row in listing_rows]
+    market_average = sum(market_prices) / len(market_prices)
+    market_median = median(market_prices)
+    market_low = min(market_prices)
+    market_high = max(market_prices)
+    fee_rate = data.platform_fee_percent / 100
+    comparisons = []
+
+    for offer in data.offers:
+        landed = offer.product_cost + offer.shipping_cost + offer.handling_cost
+        planned_fee = data.planned_selling_price * fee_rate
+        planned_profit = (
+            data.planned_selling_price - landed - planned_fee
+            - data.marketing_cost - data.returns_allowance
+        )
+        market_fee = market_average * fee_rate
+        market_profit = (
+            market_average - landed - market_fee
+            - data.marketing_cost - data.returns_allowance
+        )
+        break_even = (
+            (landed + data.marketing_cost + data.returns_allowance) / (1 - fee_rate)
+            if fee_rate < 1 else None
+        )
+        moq_investment = landed * offer.moq if offer.moq is not None else None
+        comparisons.append({
+            "supplier_id": offer.supplier_id,
+            "supplier_name": offer.supplier_name,
+            "product_cost": round(offer.product_cost, 2),
+            "shipping_cost": round(offer.shipping_cost, 2),
+            "handling_cost": round(offer.handling_cost, 2),
+            "landed_cost_per_unit": round(landed, 2),
+            "planned_selling_price": round(data.planned_selling_price, 2),
+            "planned_profit_per_order": round(planned_profit, 2),
+            "planned_profit_margin_percent": round(planned_profit / data.planned_selling_price * 100, 2),
+            "market_average_profit_per_order": round(market_profit, 2),
+            "market_average_profit_margin_percent": round(market_profit / market_average * 100, 2),
+            "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
+            "moq": offer.moq,
+            "estimated_moq_investment": round(moq_investment, 2) if moq_investment is not None else None,
+            "delivery_days": offer.delivery_days,
+            "stock_quantity": offer.stock_quantity,
+            "source_url": offer.source_url,
+            "captured_at": offer.captured_at,
+            "evidence_status": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(offer.source_url, offer.captured_at),
+        })
+
+    comparisons.sort(key=lambda row: row["planned_profit_per_order"], reverse=True)
+    return {
+        "product_name": data.product_name,
+        "country": data.country,
+        "currency": data.currency,
+        "marketplace": {
+            "listing_count": len(listing_rows),
+            "lowest_delivered_price": round(market_low, 2),
+            "average_delivered_price": round(market_average, 2),
+            "median_delivered_price": round(market_median, 2),
+            "highest_delivered_price": round(market_high, 2),
+            "price_spread": round(market_high - market_low, 2),
+            "listings": listing_rows,
+        },
+        "supplier_comparisons": comparisons,
+        "best_supplier_by_planned_profit": comparisons[0]["supplier_id"] if comparisons else None,
+        "data_note": (
+            "Supplier quotes and marketplace listings were entered or imported by the user; "
+            "they are not live-verified. Profit estimates use the entered planned price or "
+            "observed marketplace average and the entered fee, marketing and returns costs. "
+            "MOQ investment is landed unit cost multiplied by MOQ; taxes, duties, COD, "
+            "payment fees and unexpected returns are excluded unless entered."
+        ),
     }
 
 
