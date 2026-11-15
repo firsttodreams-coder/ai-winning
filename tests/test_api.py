@@ -56,6 +56,40 @@ def test_catalog_match_uses_one_to_one_assignment():
     assert response.status_code == 200
     assert response.json()["match_count"] == 1
 
+def test_catalog_match_rejects_different_skus_even_when_titles_match():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "USB Rechargeable Blender 500ml", "sku": "SUP-500"}],
+        "marketplace_products": [{"product_id": "m1", "title": "USB Rechargeable Blender 500ml", "sku": "MKT-500"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["match_count"] == 0
+    assert result["excluded_sku_conflict_pairs"] == 1
+
+
+def test_catalog_match_rejects_missing_numeric_variant_detail():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "iPhone 15 protective case"}],
+        "marketplace_products": [{"product_id": "m1", "title": "iPhone protective case"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["match_count"] == 0
+    assert result["excluded_variant_ambiguity_pairs"] == 1
+
+
+def test_catalog_match_allows_matching_numeric_variant_when_fingerprints_agree():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "iPhone 15 protective case"}],
+        "marketplace_products": [{"product_id": "m1", "title": "Protective case for iPhone 15"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    assert response.json()["match_count"] == 1
+
+
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
