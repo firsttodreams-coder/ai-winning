@@ -48,3 +48,14 @@ POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and brea
 4. Add country-aware currency, shipping and marketplace filters, including verified supplier pricing and MOQ where source access permits.
 5. Add optional AI-assisted summaries with source citations and a no-key/local mode where feasible.
 6. Add integration tests and a security review before accepting API credentials.
+
+
+## Supplier-to-marketplace catalogue matching
+
+POST `/api/v1/catalog/match` accepts imported supplier and marketplace product records (up to 50 each). The matcher:
+- prioritizes an exact SKU match when both records provide the same SKU;
+- rejects a title pair when both titles contain numeric identifiers but their numeric sets do not overlap, reducing model/size/pack-variant collisions;
+- returns a heuristic similarity score, a coarse confidence label and a match reason;
+- enforces one-to-one assignment and returns unmatched product IDs.
+
+This is a candidate-matching aid, not proof of identical products. Every result has `review_required: true`; verify images, model, dimensions, pack quantity, quality, authenticity, country, stock and supplier eligibility before using a price comparison or listing. SKU quality depends on the supplier and marketplace data provided.
