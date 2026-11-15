@@ -28,7 +28,7 @@ POST `/api/v1/score` accepts five integer signals from 1 to 10:
 The API returns a 0–100 estimate and the weights used. It scores only the submitted values; it does not fetch marketplace data or claim to be AI-generated.
 
 ## Public trends source
-GET `/api/v1/trends?country=PK` reads Google's public Trending Now RSS feed. Supported country codes: PK, US, GB, AE, SA, IN, CA, AU and DE. The response includes trend title, Google's approximate traffic bucket, start time, related news headlines and source links.
+GET `/api/v1/trends?country=PK` reads Google's public Trending Now RSS feed. Supported country codes: PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW and BH (13 markets). The response includes trend title, Google's approximate traffic bucket, start time, related news headlines and source links.
 
 Important limitations:
 - The feed returns a small set of broad trending searches, not product-specific search volume.
@@ -41,13 +41,19 @@ Important limitations:
 ## Product economics
 POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and break-even price using the costs and price supplied by the user.
 
+## Current integration status (15 November 2026)
+
+Already implemented in the repository: bilingual country-level Trends display; the supplier directory API and frontend; supplier quote and marketplace listing comparison APIs; CSV import templates for manually observed evidence; source URLs and capture-time freshness metadata; currency/country validation; supplier-to-marketplace candidate matching; and API tests in GitHub Actions. These features do not imply that a supplier account is connected or that marketplace prices, stock, sales counts or competitor counts are being fetched automatically.
+
+The 13 supported Trends markets are PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW and BH. Trends remain broad country-level discovery signals and must not be represented as product-specific sales evidence.
+
 ## Next engineering milestones
-1. Show country-level Google Trends signals in the bilingual frontend, with source timestamps and clear caveats.
-2. Add permitted marketplace evidence adapters where access is available; never scrape behind logins or bypass access controls.
-3. Store product records and source evidence with timestamps.
-4. Add country-aware currency, shipping and marketplace filters, including verified supplier pricing and MOQ where source access permits.
-5. Add optional AI-assisted summaries with source citations and a no-key/local mode where feasible.
-6. Add integration tests and a security review before accepting API credentials.
+1. Obtain authorized supplier credentials and API/feed specifications, beginning with Zambeel across Pakistan, UAE and Saudi Arabia; then Tejaraa and Wave Byte. Keep other GCC providers available as manual/import options until access is approved.
+2. Implement one supplier adapter at a time against the normalized offer schema. Validate country, currency, product ID, price, stock, MOQ, delivery, source URL and retrieval timestamp before marking an adapter connected.
+3. Add permitted marketplace evidence adapters only where official APIs, partner feeds or other authorized access are available; never bypass login, rate limits or terms.
+4. Add product-specific demand evidence and relevance checks. Do not treat broad Google Trends, generic traffic buckets or category popularity as proof of product sales.
+5. Add optional AI-assisted analysis that cites each input source and separates verified observations, user-entered values and estimates.
+6. Complete end-to-end deployment checks, mobile/desktop user testing, secret-handling review and stale-feed/error-state tests before production claims.
 
 
 ## Supplier-to-marketplace catalogue matching
