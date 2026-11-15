@@ -436,32 +436,47 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
 
 @app.post("/api/v1/catalog/match")
 def match_catalog_products(data: ProductMatchRequest):
-    """Match imported supplier and marketplace titles; scores are heuristic, not verified identity."""
-    def normalize(title: str) -> str:
-        return " ".join(re.findall(r"[\w]+", title.casefold()))
+    """Suggest conservative catalogue matches; conflicting variants are never auto-matched."""
+    def normalize(value: str) -> str:
+        return " ".join(re.findall(r"[\\w]+", value.casefold()))
 
-    def similarity(left: str, right: str) -> float:
-        left_norm, right_norm = normalize(left), normalize(right)
-        if not left_norm or not right_norm:
-            return 0.0
-        left_tokens, right_tokens = set(left_norm.split()), set(right_norm.split())
+    def numeric_fingerprints(value: str) -> set[str]:
+        # Numbers often encode model, size, capacity or pack-count variants.
+        return set(re.findall(r"\\d+(?:\\.\\d+)?", normalize(value)))
+
+    def similarity(left: CatalogProduct, right: CatalogProduct) -> tuple[float, str | None]:
+        left_title, right_title = normalize(left.title), normalize(right.title)
+        if not left_title or not right_title:
+            return 0.0, None
+
+        if left.sku and right.sku and left.sku.strip().casefold() == right.sku.strip().casefold():
+            return 1.0, "exact_sku"
+
+        left_numbers, right_numbers = numeric_fingerprints(left.title), numeric_fingerprints(right.title)
+        if left_numbers and right_numbers and left_numbers.isdisjoint(right_numbers):
+            return 0.0, None
+
+        left_tokens, right_tokens = set(left_title.split()), set(right_title.split())
         overlap = len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
-        sequence = SequenceMatcher(None, left_norm, right_norm).ratio()
-        return round((0.55 * sequence) + (0.45 * overlap), 4)
+        sequence = SequenceMatcher(None, left_title, right_title).ratio()
+        score = round((0.55 * sequence) + (0.45 * overlap), 4)
+        return score, "title_and_variant_compatible" if left_numbers or right_numbers else "title_similarity"
 
     candidates = []
     for supplier in data.supplier_products:
         for market in data.marketplace_products:
-            score = similarity(supplier.title, market.title)
-            if score >= data.minimum_similarity:
+            score, reason = similarity(supplier, market)
+            if reason and score >= data.minimum_similarity:
                 candidates.append({
                     "supplier_product": supplier.model_dump(),
                     "marketplace_product": market.model_dump(),
                     "similarity": score,
+                    "confidence": "high" if score >= 0.85 else "medium" if score >= 0.65 else "low",
+                    "match_reason": reason,
                     "match_status": "suggested_name_match",
                     "review_required": True,
                 })
-    candidates.sort(key=lambda item: item["similarity"], reverse=True)
+    candidates.sort(key=lambda item: (item["similarity"], item["match_reason"] == "exact_sku"), reverse=True)
 
     # Greedy one-to-one assignment prevents one listing being counted as many products.
     matches, used_supplier, used_market = [], set(), set()
@@ -475,7 +490,7 @@ def match_catalog_products(data: ProductMatchRequest):
         used_market.add(market_id)
 
     return {
-        "match_method": "normalized_title_similarity",
+        "match_method": "sku_first_variant_aware_title_similarity",
         "minimum_similarity": data.minimum_similarity,
         "match_count": len(matches),
         "matches": matches,
@@ -485,7 +500,7 @@ def match_catalog_products(data: ProductMatchRequest):
         "unmatched_marketplace_product_ids": [
             item.product_id for item in data.marketplace_products if item.product_id not in used_market
         ],
-        "data_note": "Name-based suggestions only. Similar titles do not prove identical variants, quality, model, pack size, authenticity, stock or supplier eligibility. Review every match before pricing or listing.",
+        "data_note": "SKU/title suggestions only. Conflicting numeric variants are excluded; similar titles still do not prove identical quality, pack size, authenticity, stock, delivery or supplier eligibility. Review every match before pricing or listing.",
     }
 
 
