@@ -207,6 +207,12 @@ class CatalogProduct(BaseModel):
     title: str = Field(min_length=2, max_length=200)
     sku: str | None = Field(default=None, max_length=100)
     source: str | None = Field(default=None, max_length=100)
+    brand: str | None = Field(default=None, max_length=100)
+    model: str | None = Field(default=None, max_length=100)
+    size: str | None = Field(default=None, max_length=80)
+    color: str | None = Field(default=None, max_length=60)
+    pack_quantity: int | None = Field(default=None, ge=1, le=10000)
+    condition: str | None = Field(default=None, max_length=40)
 
 
 class ProductMatchRequest(BaseModel):
@@ -452,6 +458,19 @@ def match_catalog_products(data: ProductMatchRequest):
         # Numbers often encode model, size, capacity or pack-count variants.
         return set(re.findall(r"\d+(?:\.\d+)?", normalize(value)))
 
+    attribute_fields = ("brand", "model", "size", "color", "pack_quantity", "condition")
+
+    def attribute_conflicts(left: CatalogProduct, right: CatalogProduct) -> list[str]:
+        conflicts = []
+        for field in attribute_fields:
+            lv, rv = getattr(left, field), getattr(right, field)
+            if lv is None or rv is None:
+                continue
+            equal = lv == rv if field == "pack_quantity" else normalize(str(lv)) == normalize(str(rv))
+            if not equal:
+                conflicts.append(field)
+        return conflicts
+
     def similarity(left: CatalogProduct, right: CatalogProduct) -> tuple[float, str | None]:
         left_title, right_title = normalize(left.title), normalize(right.title)
         if not left_title or not right_title:
@@ -479,12 +498,16 @@ def match_catalog_products(data: ProductMatchRequest):
     candidates = []
     excluded_sku_conflicts = 0
     excluded_variant_ambiguities = 0
+    excluded_attribute_conflict_pairs = 0
     for supplier in data.supplier_products:
         for market in data.marketplace_products:
             # Count conservative exclusions for diagnostics without returning
             # potentially sensitive or overly verbose pair-level details.
             if supplier.sku and market.sku and supplier.sku.strip().casefold() != market.sku.strip().casefold():
                 excluded_sku_conflicts += 1
+                continue
+            if attribute_conflicts(supplier, market):
+                excluded_attribute_conflict_pairs += 1
                 continue
             supplier_numbers = numeric_fingerprints(supplier.title)
             market_numbers = numeric_fingerprints(market.title)
@@ -521,6 +544,7 @@ def match_catalog_products(data: ProductMatchRequest):
         "match_count": len(matches),
         "excluded_sku_conflict_pairs": excluded_sku_conflicts,
         "excluded_variant_ambiguity_pairs": excluded_variant_ambiguities,
+        "excluded_attribute_conflict_pairs": excluded_attribute_conflict_pairs,
         "matches": matches,
         "unmatched_supplier_product_ids": [
             item.product_id for item in data.supplier_products if item.product_id not in used_supplier
@@ -528,7 +552,7 @@ def match_catalog_products(data: ProductMatchRequest):
         "unmatched_marketplace_product_ids": [
             item.product_id for item in data.marketplace_products if item.product_id not in used_market
         ],
-        "data_note": "SKU/title suggestions only. Conflicting numeric variants are excluded; similar titles still do not prove identical quality, pack size, authenticity, stock, delivery or supplier eligibility. Review every match before pricing or listing.",
+        "data_note": "SKU, supplied attribute and title-based suggestions only. Conflicting known brand, model, size, colour, pack quantity or condition values are excluded. Missing attributes are not inferred; review quality, authenticity, stock, delivery and supplier eligibility before pricing or listing.",
     }
 
 
