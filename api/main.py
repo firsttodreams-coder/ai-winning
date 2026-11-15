@@ -396,6 +396,12 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
         })
     totals = [item["observed_total_price"] for item in normalized]
     average = sum(totals) / len(totals)
+    price_gap_percent = ((data.planned_selling_price - average) / average) * 100
+    price_position = (
+        "near_average" if abs(price_gap_percent) <= 1
+        else "below_average" if price_gap_percent < 0
+        else "above_average"
+    )
     lowest = min(totals)
     highest = max(totals)
     supplier_landed = data.supplier_cost + data.supplier_shipping
@@ -425,6 +431,8 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
             "landed_cost": round(supplier_landed, 2),
         },
         "planned_selling_price": round(data.planned_selling_price, 2),
+        "planned_price_vs_market_average_percent": round(price_gap_percent, 2),
+        "planned_price_position": price_position,
         "estimated_profit_per_order": round(profit, 2),
         "estimated_profit_margin_percent": round(profit / data.planned_selling_price * 100, 2),
         "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
