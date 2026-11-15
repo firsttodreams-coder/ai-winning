@@ -6,13 +6,15 @@ country-level discovery signal, not product-specific demand or sales data.
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from statistics import median
+from difflib import SequenceMatcher
+import re
 from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 app = FastAPI(
     title="AI Winning Product Finder API",
@@ -72,6 +74,19 @@ SUPPLIERS = [
 ]
 
 COUNTRY_NAMES = {"PK": "Pakistan", "AE": "United Arab Emirates", "SA": "Saudi Arabia", "OM": "Oman", "QA": "Qatar", "KW": "Kuwait", "BH": "Bahrain"}
+COUNTRY_CURRENCIES = {
+    "PK": "PKR", "US": "USD", "GB": "GBP", "AE": "AED", "SA": "SAR",
+    "IN": "INR", "CA": "CAD", "AU": "AUD", "DE": "EUR", "OM": "OMR",
+    "QA": "QAR", "KW": "KWD", "BH": "BHD",
+}
+
+
+def _validate_market_currency(country: str, currency: str) -> None:
+    expected = COUNTRY_CURRENCIES[country]
+    if currency != expected:
+        raise ValueError(
+            f"Currency for {country} must be {expected}; convert the entered prices before comparing."
+        )
 
 
 class OpportunitySignals(BaseModel):
@@ -146,6 +161,18 @@ class SupplierOfferComparison(BaseModel):
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
 
+    @model_validator(mode="after")
+    def validate_market_and_currency(self):
+        _validate_market_currency(self.country, self.currency)
+        known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
+        for offer in self.offers:
+            supplier = known_suppliers.get(offer.supplier_id)
+            if supplier and self.country not in supplier["countries"]:
+                raise ValueError(
+                    f"Supplier {offer.supplier_id} is not listed for market {self.country}."
+                )
+        return self
+
 
 class MarketplaceListing(BaseModel):
     marketplace: str = Field(min_length=2, max_length=80)
@@ -168,6 +195,24 @@ class MarketplacePriceComparison(BaseModel):
     marketing_cost: float = Field(default=0, ge=0, le=100000000)
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
     listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def currency_matches_country(self):
+        _validate_market_currency(self.country, self.currency)
+        return self
+
+
+class CatalogProduct(BaseModel):
+    product_id: str = Field(min_length=1, max_length=80)
+    title: str = Field(min_length=2, max_length=200)
+    sku: str | None = Field(default=None, max_length=100)
+    source: str | None = Field(default=None, max_length=100)
+
+
+class ProductMatchRequest(BaseModel):
+    supplier_products: list[CatalogProduct] = Field(min_length=1, max_length=50)
+    marketplace_products: list[CatalogProduct] = Field(min_length=1, max_length=50)
+    minimum_similarity: float = Field(default=0.45, ge=0, le=1)
 
 
 class ProductEconomics(BaseModel):
@@ -386,6 +431,61 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
         "market_average_minus_supplier_landed_cost": round(average - supplier_landed, 2),
         "listings": normalized,
         "data_note": "Marketplace listings and supplier costs were entered or imported by the user. No live marketplace price, sales count, or supplier quote was fetched or independently verified. Delivered listing price includes the entered listing shipping cost; taxes, coupons, COD, returns and fees may differ.",
+    }
+
+
+@app.post("/api/v1/catalog/match")
+def match_catalog_products(data: ProductMatchRequest):
+    """Match imported supplier and marketplace titles; scores are heuristic, not verified identity."""
+    def normalize(title: str) -> str:
+        return " ".join(re.findall(r"[\w]+", title.casefold()))
+
+    def similarity(left: str, right: str) -> float:
+        left_norm, right_norm = normalize(left), normalize(right)
+        if not left_norm or not right_norm:
+            return 0.0
+        left_tokens, right_tokens = set(left_norm.split()), set(right_norm.split())
+        overlap = len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+        sequence = SequenceMatcher(None, left_norm, right_norm).ratio()
+        return round((0.55 * sequence) + (0.45 * overlap), 4)
+
+    candidates = []
+    for supplier in data.supplier_products:
+        for market in data.marketplace_products:
+            score = similarity(supplier.title, market.title)
+            if score >= data.minimum_similarity:
+                candidates.append({
+                    "supplier_product": supplier.model_dump(),
+                    "marketplace_product": market.model_dump(),
+                    "similarity": score,
+                    "match_status": "suggested_name_match",
+                    "review_required": True,
+                })
+    candidates.sort(key=lambda item: item["similarity"], reverse=True)
+
+    # Greedy one-to-one assignment prevents one listing being counted as many products.
+    matches, used_supplier, used_market = [], set(), set()
+    for candidate in candidates:
+        supplier_id = candidate["supplier_product"]["product_id"]
+        market_id = candidate["marketplace_product"]["product_id"]
+        if supplier_id in used_supplier or market_id in used_market:
+            continue
+        matches.append(candidate)
+        used_supplier.add(supplier_id)
+        used_market.add(market_id)
+
+    return {
+        "match_method": "normalized_title_similarity",
+        "minimum_similarity": data.minimum_similarity,
+        "match_count": len(matches),
+        "matches": matches,
+        "unmatched_supplier_product_ids": [
+            item.product_id for item in data.supplier_products if item.product_id not in used_supplier
+        ],
+        "unmatched_marketplace_product_ids": [
+            item.product_id for item in data.marketplace_products if item.product_id not in used_market
+        ],
+        "data_note": "Name-based suggestions only. Similar titles do not prove identical variants, quality, model, pack size, authenticity, stock or supplier eligibility. Review every match before pricing or listing.",
     }
 
 
