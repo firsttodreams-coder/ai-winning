@@ -90,6 +90,46 @@ def test_catalog_match_allows_matching_numeric_variant_when_fingerprints_agree()
     assert response.json()["match_count"] == 1
 
 
+def test_catalog_match_rejects_conflicting_structured_attributes():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "Wireless earbuds", "brand": "Acme", "model": "X2", "color": "Black", "pack_quantity": 1, "condition": "new"}],
+        "marketplace_products": [{"product_id": "m1", "title": "Wireless earbuds", "brand": "Other", "model": "X2", "color": "White", "pack_quantity": 2, "condition": "new"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    assert response.json()["match_count"] == 0
+    assert response.json()["excluded_attribute_conflict_pairs"] == 1
+
+
+def test_catalog_match_accepts_matching_structured_attributes():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "Wireless earbuds", "brand": "Acme", "model": "X2", "size": "Regular", "color": "Black", "pack_quantity": 1, "condition": "New"}],
+        "marketplace_products": [{"product_id": "m1", "title": "Acme X2 wireless earbuds", "brand": "ACME", "model": "x2", "size": "regular", "color": "black", "pack_quantity": 1, "condition": "new"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    assert response.json()["match_count"] == 1
+
+
+def test_catalog_match_allows_missing_attributes_but_requires_review():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "Wireless earbuds", "brand": "Acme"}],
+        "marketplace_products": [{"product_id": "m1", "title": "Wireless earbuds"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    assert response.json()["match_count"] == 1
+    assert response.json()["matches"][0]["review_required"] is True
+
+
+def test_catalog_match_rejects_invalid_pack_quantity():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "Coffee filters", "pack_quantity": 0}],
+        "marketplace_products": [{"product_id": "m1", "title": "Coffee filters"}]
+    })
+    assert response.status_code == 422
+
+
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
