@@ -93,7 +93,8 @@ footer{text-align:center;color:var(--muted);padding:32px 15px;font-size:13px}
 <label for="supplierQuoteShipping1" data-i18n="supplierQuoteShipping">Shipping cost</label><input id="supplierQuoteShipping1" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteHandling1" data-i18n="supplierQuoteHandling">Handling cost</label><input id="supplierQuoteHandling1" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteDelivery1" data-i18n="supplierQuoteDelivery">Delivery days (optional)</label><input id="supplierQuoteDelivery1" type="number" min="0" step="1">
-<label for="supplierQuoteStock1" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock1" type="number" min="0" step="1">\n<label for="supplierQuoteMoq1" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq1" type="number" min="1" step="1">
+<label for="supplierQuoteStock1" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock1" type="number" min="0" step="1">
+<label for="supplierQuoteMoq1" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq1" type="number" min="1" step="1">
 <label for="supplierQuoteUrl1" data-i18n="supplierQuoteUrl">Quote / product URL (optional)</label><input id="supplierQuoteUrl1" type="url">
 </div><div>
 <label for="supplierQuote2" data-i18n="supplierQuoteSelect">Supplier</label><select id="supplierQuote2"><option value="">Select a supplier</option></select>
@@ -101,7 +102,8 @@ footer{text-align:center;color:var(--muted);padding:32px 15px;font-size:13px}
 <label for="supplierQuoteShipping2" data-i18n="supplierQuoteShipping">Shipping cost</label><input id="supplierQuoteShipping2" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteHandling2" data-i18n="supplierQuoteHandling">Handling cost</label><input id="supplierQuoteHandling2" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteDelivery2" data-i18n="supplierQuoteDelivery">Delivery days (optional)</label><input id="supplierQuoteDelivery2" type="number" min="0" step="1">
-<label for="supplierQuoteStock2" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock2" type="number" min="0" step="1">\n<label for="supplierQuoteMoq2" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq2" type="number" min="1" step="1">
+<label for="supplierQuoteStock2" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock2" type="number" min="0" step="1">
+<label for="supplierQuoteMoq2" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq2" type="number" min="1" step="1">
 <label for="supplierQuoteUrl2" data-i18n="supplierQuoteUrl">Quote / product URL (optional)</label><input id="supplierQuoteUrl2" type="url">
 </div><div>
 <label for="supplierQuote3" data-i18n="supplierQuoteSelect">Supplier</label><select id="supplierQuote3"><option value="">Select a supplier</option></select>
@@ -109,7 +111,8 @@ footer{text-align:center;color:var(--muted);padding:32px 15px;font-size:13px}
 <label for="supplierQuoteShipping3" data-i18n="supplierQuoteShipping">Shipping cost</label><input id="supplierQuoteShipping3" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteHandling3" data-i18n="supplierQuoteHandling">Handling cost</label><input id="supplierQuoteHandling3" type="number" min="0" step="0.01" value="0">
 <label for="supplierQuoteDelivery3" data-i18n="supplierQuoteDelivery">Delivery days (optional)</label><input id="supplierQuoteDelivery3" type="number" min="0" step="1">
-<label for="supplierQuoteStock3" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock3" type="number" min="0" step="1">\n<label for="supplierQuoteMoq3" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq3" type="number" min="1" step="1">
+<label for="supplierQuoteStock3" data-i18n="supplierQuoteStock">Stock quantity (optional)</label><input id="supplierQuoteStock3" type="number" min="0" step="1">
+<label for="supplierQuoteMoq3" data-i18n="supplierQuoteMoq">Minimum order quantity (optional)</label><input id="supplierQuoteMoq3" type="number" min="1" step="1">
 <label for="supplierQuoteUrl3" data-i18n="supplierQuoteUrl">Quote / product URL (optional)</label><input id="supplierQuoteUrl3" type="url">
 </div>
 </div>
@@ -489,7 +492,10 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
    $("supplierQuoteShipping"+slot).value=String(shipping);
    $("supplierQuoteHandling"+slot).value=String(handling);
    $("supplierQuoteDelivery"+slot).value=delivery===null?"":String(delivery);
-   $("supplierQuoteStock"+slot).value=stock===null?"":String(stock);\n   const moq=values.moq===""||values.moq===undefined?null:Number(values.moq);\n   if(moq!==null&&(!Number.isInteger(moq)||moq<1))throw new Error("Invalid minimum order quantity");\n   $("supplierQuoteMoq"+slot).value=moq===null?"":String(moq);
+   $("supplierQuoteStock"+slot).value=stock===null?"":String(stock);
+   const moq=values.moq===""||values.moq===undefined?null:Number(values.moq);
+   if(moq!==null&&(!Number.isInteger(moq)||moq<1))throw new Error("Invalid minimum order quantity");
+   $("supplierQuoteMoq"+slot).value=moq===null?"":String(moq);
    $("supplierQuoteUrl"+slot).value=values.source_url||"";
    $("supplierQuoteCost"+slot).dataset.capturedAt=values.captured_at||"";
    if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("Invalid source URL");
