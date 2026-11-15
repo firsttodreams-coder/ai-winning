@@ -498,3 +498,63 @@ def test_catalog_match_prioritizes_exact_sku_and_explains_confidence():
     assert result["matches"][0]["confidence"] == "high"
     assert result["matches"][0]["match_reason"] == "exact_sku"
     assert result["matches"][0]["review_required"] is True
+
+
+
+def test_unified_profitability_comparison_joins_market_and_supplier_costs():
+    response = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "Portable blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 1500, "platform_fee_percent": 10,
+        "marketing_cost": 50, "returns_allowance": 25,
+        "offers": [
+            {"supplier_id": "zambeel", "supplier_name": "Zambeel",
+             "product_cost": 500, "shipping_cost": 100, "handling_cost": 20,
+             "moq": 3, "delivery_days": 4, "stock_quantity": 20},
+            {"supplier_id": "custom", "supplier_name": "Custom supplier",
+             "product_cost": 700, "shipping_cost": 50, "moq": 1}
+        ],
+        "listings": [
+            {"marketplace": "Daraz", "price": 1400, "shipping_cost": 100},
+            {"marketplace": "Marketplace B", "price": 1600}
+        ]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["marketplace"]["average_delivered_price"] == 1550
+    first = result["supplier_comparisons"][0]
+    assert first["supplier_id"] == "zambeel"
+    assert first["landed_cost_per_unit"] == 620
+    assert first["planned_profit_per_order"] == 655
+    assert first["estimated_moq_investment"] == 1860
+    assert first["market_average_profit_per_order"] == 700
+    assert result["best_supplier_by_planned_profit"] == "zambeel"
+    assert result["marketplace"]["listings"][0]["evidence_status"] == "user_supplied_or_imported_not_live_verified"
+
+
+def test_unified_profitability_comparison_rejects_wrong_currency_and_supplier_market():
+    wrong_currency = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "Phone stand", "country": "SA", "currency": "AED",
+        "planned_selling_price": 100, "offers": [
+            {"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 20}
+        ],
+        "listings": [{"marketplace": "Noon", "price": 90}]
+    })
+    wrong_supplier = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "Phone stand", "country": "SA", "currency": "SAR",
+        "planned_selling_price": 100, "offers": [
+            {"supplier_id": "directstock", "supplier_name": "DirectStock", "product_cost": 20}
+        ],
+        "listings": [{"marketplace": "Noon", "price": 90}]
+    })
+    assert wrong_currency.status_code == 422
+    assert wrong_supplier.status_code == 422
+
+
+def test_unified_profitability_comparison_requires_supplier_and_market_data():
+    response = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "Desk fan", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 1000,
+        "offers": [{"supplier_id": "custom", "supplier_name": "Custom supplier", "product_cost": 300}],
+        "listings": []
+    })
+    assert response.status_code == 422
