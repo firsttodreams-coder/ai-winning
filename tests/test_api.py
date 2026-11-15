@@ -8,6 +8,21 @@ client = TestClient(app)
 
 
 
+
+
+def test_unified_profitability_requires_product_identity_confirmation():
+    payload = {
+        "product_name": "USB Blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 5000,
+        "offers": [{"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 1800}],
+        "listings": [{"marketplace": "Daraz", "price": 4500}],
+    }
+    rejected = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert rejected.status_code == 422
+    payload["product_identity_confirmed"] = True
+    accepted = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert accepted.status_code == 200
+
 def test_catalog_match_suggests_similar_titles_and_marks_review_required():
     response = client.post("/api/v1/catalog/match", json={
         "supplier_products": [
