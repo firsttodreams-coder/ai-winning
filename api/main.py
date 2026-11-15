@@ -213,12 +213,20 @@ class UnifiedProfitabilityComparison(BaseModel):
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
     listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
     product_identity_confirmed: bool = False
+    catalog_match_context: dict | None = None
 
     @model_validator(mode="after")
     def validate_market_and_currency(self):
         _validate_market_currency(self.country, self.currency)
         if not self.product_identity_confirmed:
             raise ValueError("Confirm supplier offers and marketplace listings are the same product and variant before comparing profitability.")
+        if self.catalog_match_context is not None:
+            context = self.catalog_match_context
+            required = {"supplier_product_id", "supplier_title", "marketplace_product_id", "marketplace_title", "similarity"}
+            if not required.issubset(context):
+                raise ValueError("Catalog match context is incomplete.")
+            if not 0 <= context["similarity"] <= 1:
+                raise ValueError("Catalog match similarity must be between 0 and 1.")
         known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
         for offer in self.offers:
             supplier = known_suppliers.get(offer.supplier_id)
@@ -558,6 +566,12 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         },
         "supplier_comparisons": comparisons,
         "best_supplier_by_planned_profit": comparisons[0]["supplier_id"] if comparisons else None,
+        "catalog_match_context": ({
+            **data.catalog_match_context,
+            "status": "catalog_suggestion_selected",
+            "review_required": True,
+            "automated_identity_verified": False,
+        } if data.catalog_match_context else None),
         "product_identity_review": {
             "status": "user_confirmed",
             "verification_method": "manual_checkbox",
