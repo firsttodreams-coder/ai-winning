@@ -578,3 +578,40 @@ def test_unified_profitability_comparison_requires_supplier_and_market_data():
         "listings": []
     })
     assert response.status_code == 422
+
+
+def test_unified_profitability_preserves_catalog_match_as_unverified_context():
+    payload = {
+        "product_name": "Portable USB Blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 5000, "product_identity_confirmed": True,
+        "offers": [{"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 1800}],
+        "listings": [{"marketplace": "Daraz", "price": 4500}],
+        "catalog_match_context": {
+            "supplier_product_id": "s-10", "supplier_title": "Portable USB Blender",
+            "marketplace_product_id": "m-20", "marketplace_title": "USB Blender Portable",
+            "similarity": 0.87
+        }
+    }
+    response = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert response.status_code == 200
+    context = response.json()["catalog_match_context"]
+    assert context["status"] == "catalog_suggestion_selected"
+    assert context["review_required"] is True
+    assert context["automated_identity_verified"] is False
+    assert context["similarity"] == 0.87
+
+
+def test_unified_profitability_rejects_invalid_catalog_match_similarity():
+    payload = {
+        "product_name": "USB Blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 5000, "product_identity_confirmed": True,
+        "offers": [{"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 1800}],
+        "listings": [{"marketplace": "Daraz", "price": 4500}],
+        "catalog_match_context": {
+            "supplier_product_id": "s-1", "supplier_title": "USB Blender",
+            "marketplace_product_id": "m-1", "marketplace_title": "USB Blender",
+            "similarity": 1.2
+        }
+    }
+    response = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert response.status_code == 422
