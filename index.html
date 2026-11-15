@@ -599,6 +599,8 @@ $("matchCatalogs").addEventListener("click",async()=>{
    box.innerHTML=data.matches.map(match=>'<article class="supplier-card"><h4>'+escapeResearchText(match.supplier_product.title)+'</h4><p class="meta">'+escapeResearchText(t.catalogSupplier)+': '+escapeResearchText(match.supplier_product.product_id)+'</p><p class="meta">'+escapeResearchText(t.catalogListing)+': '+escapeResearchText(match.marketplace_product.title)+' ('+escapeResearchText(match.marketplace_product.product_id)+')</p><p><strong>'+escapeResearchText(t.catalogMatchScore)+': '+fmt(match.similarity)+'</strong></p><p class="meta">'+escapeResearchText(t.catalogConfidence)+': '+escapeResearchText(confidenceLabel[match.confidence]||match.confidence||"—")+'</p><p class="meta">'+escapeResearchText(t.catalogReason)+': '+escapeResearchText(reasonLabel[match.match_reason]||match.match_reason||"—")+'</p><span class="tag">'+escapeResearchText(t.catalogReview)+'</span></article>').join("");
    const unmatchedSupplier=data.unmatched_supplier_product_ids||[],unmatchedMarket=data.unmatched_marketplace_product_ids||[];
    status.textContent=data.matches.length+t.catalogMatchSuccess+" · "+t.catalogUnmatched+": "+unmatchedSupplier.length+" / "+unmatchedMarket.length+" · "+data.data_note;
+   const unmatchedBlock=(label,ids)=>ids.length?'<section class="supplier-card"><strong>'+escapeResearchText(label)+'</strong><p class="meta">'+ids.map(escapeResearchText).join(", ")+'</p></section>':"";
+   box.insertAdjacentHTML("beforeend",unmatchedBlock(t.catalogSupplier,unmatchedSupplier)+unmatchedBlock(t.catalogListing,unmatchedMarket));
  }catch(error){console.error(error);status.textContent=translations[language].catalogMatchError;}
  finally{button.disabled=false;}
 });
