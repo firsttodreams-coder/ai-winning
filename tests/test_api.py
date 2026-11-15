@@ -388,3 +388,37 @@ def test_marketplace_price_comparison_rejects_currency_that_does_not_match_count
     })
     assert response.status_code == 422
     assert "Currency for PK must be PKR" in response.text
+
+
+
+def test_catalog_match_rejects_conflicting_numeric_variants():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{"product_id": "s1", "title": "iPhone 13 protective case"}],
+        "marketplace_products": [{"product_id": "m1", "title": "iPhone 14 protective case"}],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["match_count"] == 0
+    assert result["unmatched_supplier_product_ids"] == ["s1"]
+    assert result["unmatched_marketplace_product_ids"] == ["m1"]
+
+
+def test_catalog_match_prioritizes_exact_sku_and_explains_confidence():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [
+            {"product_id": "s1", "title": "Portable Blender 500ml", "sku": "BLEND-500"},
+            {"product_id": "s2", "title": "Portable Blender 600ml", "sku": "BLEND-600"}
+        ],
+        "marketplace_products": [
+            {"product_id": "m1", "title": "Mini blender", "sku": "blend-500"}
+        ],
+        "minimum_similarity": 0.1
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["matches"][0]["supplier_product"]["product_id"] == "s1"
+    assert result["matches"][0]["similarity"] == 1.0
+    assert result["matches"][0]["confidence"] == "high"
+    assert result["matches"][0]["match_reason"] == "exact_sku"
+    assert result["matches"][0]["review_required"] is True
