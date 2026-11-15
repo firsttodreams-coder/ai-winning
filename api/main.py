@@ -558,6 +558,13 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         },
         "supplier_comparisons": comparisons,
         "best_supplier_by_planned_profit": comparisons[0]["supplier_id"] if comparisons else None,
+        "product_identity_review": {
+            "status": "user_confirmed",
+            "verification_method": "manual_checkbox",
+            "automated_catalog_match_performed": False,
+            "review_required": True,
+            "review_note": "User confirmed product identity manually. This is not an automated SKU, brand, model or variant match; inspect supplier and listing specifications before purchase.",
+        },
         "data_note": (
             "Supplier quotes and marketplace listings were entered or imported by the user; "
             "they are not live-verified. Profit estimates use the entered planned price or "
