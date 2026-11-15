@@ -22,6 +22,11 @@ def test_unified_profitability_requires_product_identity_confirmation():
     payload["product_identity_confirmed"] = True
     accepted = client.post("/api/v1/product-profitability/compare", json=payload)
     assert accepted.status_code == 200
+    identity = accepted.json()["product_identity_review"]
+    assert identity["status"] == "user_confirmed"
+    assert identity["verification_method"] == "manual_checkbox"
+    assert identity["automated_catalog_match_performed"] is False
+    assert identity["review_required"] is True
 
 def test_catalog_match_suggests_similar_titles_and_marks_review_required():
     response = client.post("/api/v1/catalog/match", json={
