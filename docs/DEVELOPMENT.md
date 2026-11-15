@@ -65,3 +65,12 @@ POST `/api/v1/catalog/match` accepts imported supplier and marketplace product r
 - enforces one-to-one assignment and returns unmatched product IDs.
 
 This is a candidate-matching aid, not proof of identical products. Every result has `review_required: true`; verify images, model, dimensions, pack quantity, quality, authenticity, country, stock and supplier eligibility before using a price comparison or listing. SKU quality depends on the supplier and marketplace data provided.
+
+
+## Unified supplier and marketplace profitability comparison
+
+The `POST /api/v1/product-profitability/compare` endpoint combines user-entered supplier offers and marketplace listings for the same product and market. It reports delivered marketplace price range/average/median alongside each supplier's landed unit cost, profit per order at the planned selling price, estimated profit at the marketplace average, break-even price, delivery/stock details, and estimated MOQ investment when MOQ is supplied.
+
+Request fields include `product_name`, `country`, matching `currency`, `planned_selling_price`, optional platform fee/marketing/returns costs, at least one `offers` entry, and at least one `listings` entry. Supplier offers retain source URL and capture time; marketplace listings retain listing URL and capture time. Freshness metadata is descriptive only. Neither input is fetched or independently verified by this endpoint.
+
+MOQ investment is calculated as landed unit cost multiplied by MOQ. Profit estimates exclude taxes, duties, COD, payment fees and unentered costs. The best-supplier field ranks suppliers by estimated profit at the planned selling price, not by verified sales or guaranteed outcomes.
