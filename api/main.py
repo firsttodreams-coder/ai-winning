@@ -457,11 +457,17 @@ def match_catalog_products(data: ProductMatchRequest):
         if not left_title or not right_title:
             return 0.0, None
 
-        if left.sku and right.sku and left.sku.strip().casefold() == right.sku.strip().casefold():
-            return 1.0, "exact_sku"
+        # When both sources expose SKUs, a disagreement is stronger evidence
+        # than a similar title: never fall back to fuzzy matching across SKUs.
+        if left.sku and right.sku:
+            if left.sku.strip().casefold() == right.sku.strip().casefold():
+                return 1.0, "exact_sku"
+            return 0.0, None
 
         left_numbers, right_numbers = numeric_fingerprints(left.title), numeric_fingerprints(right.title)
-        if left_numbers and right_numbers and left_numbers.isdisjoint(right_numbers):
+        # A missing numeric fingerprint is ambiguous, not proof of compatibility:
+        # e.g. "iPhone 15 case" must not match a generic "iPhone case".
+        if left_numbers != right_numbers and (left_numbers or right_numbers):
             return 0.0, None
 
         left_tokens, right_tokens = set(left_title.split()), set(right_title.split())
@@ -471,8 +477,20 @@ def match_catalog_products(data: ProductMatchRequest):
         return score, "title_and_variant_compatible" if left_numbers or right_numbers else "title_similarity"
 
     candidates = []
+    excluded_sku_conflicts = 0
+    excluded_variant_ambiguities = 0
     for supplier in data.supplier_products:
         for market in data.marketplace_products:
+            # Count conservative exclusions for diagnostics without returning
+            # potentially sensitive or overly verbose pair-level details.
+            if supplier.sku and market.sku and supplier.sku.strip().casefold() != market.sku.strip().casefold():
+                excluded_sku_conflicts += 1
+                continue
+            supplier_numbers = numeric_fingerprints(supplier.title)
+            market_numbers = numeric_fingerprints(market.title)
+            if supplier_numbers != market_numbers and (supplier_numbers or market_numbers):
+                excluded_variant_ambiguities += 1
+                continue
             score, reason = similarity(supplier, market)
             if reason and score >= data.minimum_similarity:
                 candidates.append({
@@ -501,6 +519,8 @@ def match_catalog_products(data: ProductMatchRequest):
         "match_method": "sku_first_variant_aware_title_similarity",
         "minimum_similarity": data.minimum_similarity,
         "match_count": len(matches),
+        "excluded_sku_conflict_pairs": excluded_sku_conflicts,
+        "excluded_variant_ambiguity_pairs": excluded_variant_ambiguities,
         "matches": matches,
         "unmatched_supplier_product_ids": [
             item.product_id for item in data.supplier_products if item.product_id not in used_supplier
