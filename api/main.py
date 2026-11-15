@@ -212,10 +212,13 @@ class UnifiedProfitabilityComparison(BaseModel):
     returns_allowance: float = Field(default=0, ge=0, le=100000000)
     offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
     listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
+    product_identity_confirmed: bool = False
 
     @model_validator(mode="after")
     def validate_market_and_currency(self):
         _validate_market_currency(self.country, self.currency)
+        if not self.product_identity_confirmed:
+            raise ValueError("Confirm supplier offers and marketplace listings are the same product and variant before comparing profitability.")
         known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
         for offer in self.offers:
             supplier = known_suppliers.get(offer.supplier_id)
