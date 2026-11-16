@@ -59,9 +59,10 @@ The 13 supported Trends markets are PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, 
 ## Supplier-to-marketplace catalogue matching
 
 POST `/api/v1/catalog/match` accepts imported supplier and marketplace product records (up to 50 each). The matcher:
-- prioritizes an exact SKU match when both records provide the same SKU;
-- rejects a title pair when both titles contain numeric identifiers but their numeric sets do not overlap, reducing model/size/pack-variant collisions;
-- returns a heuristic similarity score, a coarse confidence label and a match reason;
+- prioritizes an exact SKU match when both records provide the same SKU, even if one title omits a model/size number;
+- rejects conflicting supplied brand, model, size, colour, pack-quantity or condition attributes;
+- rejects conflicting title-number fingerprints unless the records share an exact SKU or both provide the same structured model value;
+- returns a heuristic similarity score, a coarse confidence label, exclusion counts and a match reason;
 - enforces one-to-one assignment and returns unmatched product IDs.
 
 This is a candidate-matching aid, not proof of identical products. Every result has `review_required: true`; verify images, model, dimensions, pack quantity, quality, authenticity, country, stock and supplier eligibility before using a price comparison or listing. SKU quality depends on the supplier and marketplace data provided.
@@ -71,6 +72,6 @@ This is a candidate-matching aid, not proof of identical products. Every result 
 
 The `POST /api/v1/product-profitability/compare` endpoint combines user-entered supplier offers and marketplace listings for the same product and market. It reports delivered marketplace price range/average/median alongside each supplier's landed unit cost, profit per order at the planned selling price, estimated profit at the marketplace average, break-even price, delivery/stock details, and estimated MOQ investment when MOQ is supplied.
 
-Request fields include `product_name`, `country`, matching `currency`, `planned_selling_price`, optional platform fee/marketing/returns costs, at least one `offers` entry, and at least one `listings` entry. Supplier offers retain source URL and capture time; marketplace listings retain listing URL and capture time. Freshness metadata is descriptive only. Neither input is fetched or independently verified by this endpoint.
+Request fields include `product_name`, `country`, matching `currency`, `planned_selling_price`, `product_identity_confirmed: true`, optional platform fee/marketing/returns costs, at least one `offers` entry, and at least one `listings` entry. The identity flag is a manual confirmation gate: it records that the user checked the same product and variant, not an automated identity verification. An optional `catalog_match_context` preserves the selected catalogue suggestion as unverified provenance. Supplier offers retain source URL and capture time; marketplace listings retain listing URL and capture time. Freshness metadata is descriptive only. Neither input is fetched or independently verified by this endpoint.
 
 MOQ investment is calculated as landed unit cost multiplied by MOQ. Profit estimates exclude taxes, duties, COD, payment fees and unentered costs. The best-supplier field ranks suppliers by estimated profit at the planned selling price, not by verified sales or guaranteed outcomes.
