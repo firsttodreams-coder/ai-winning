@@ -524,7 +524,7 @@ def test_catalog_match_prioritizes_exact_sku_and_explains_confidence():
 def test_unified_profitability_comparison_joins_market_and_supplier_costs():
     response = client.post("/api/v1/product-profitability/compare", json={
         "product_name": "Portable blender", "country": "PK", "currency": "PKR",
-        "planned_selling_price": 1500, "platform_fee_percent": 10,
+        "planned_selling_price": 1500, "product_identity_confirmed": True, "platform_fee_percent": 10,
         "marketing_cost": 50, "returns_allowance": 25,
         "offers": [
             {"supplier_id": "zambeel", "supplier_name": "Zambeel",

@@ -202,11 +202,52 @@ class MarketplacePriceComparison(BaseModel):
         return self
 
 
+class UnifiedProfitabilityComparison(BaseModel):
+    product_name: str = Field(min_length=2, max_length=160)
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    planned_selling_price: float = Field(gt=0, le=100000000)
+    platform_fee_percent: float = Field(default=0, ge=0, le=100)
+    marketing_cost: float = Field(default=0, ge=0, le=100000000)
+    returns_allowance: float = Field(default=0, ge=0, le=100000000)
+    offers: list[SupplierOffer] = Field(min_length=1, max_length=50)
+    listings: list[MarketplaceListing] = Field(min_length=1, max_length=50)
+    product_identity_confirmed: bool = False
+    catalog_match_context: dict | None = None
+
+    @model_validator(mode="after")
+    def validate_market_and_currency(self):
+        _validate_market_currency(self.country, self.currency)
+        if not self.product_identity_confirmed:
+            raise ValueError("Confirm supplier offers and marketplace listings are the same product and variant before comparing profitability.")
+        if self.catalog_match_context is not None:
+            context = self.catalog_match_context
+            required = {"supplier_product_id", "supplier_title", "marketplace_product_id", "marketplace_title", "similarity"}
+            if not required.issubset(context):
+                raise ValueError("Catalog match context is incomplete.")
+            if not 0 <= context["similarity"] <= 1:
+                raise ValueError("Catalog match similarity must be between 0 and 1.")
+        known_suppliers = {supplier["id"]: supplier for supplier in SUPPLIERS}
+        for offer in self.offers:
+            supplier = known_suppliers.get(offer.supplier_id)
+            if supplier and self.country not in supplier["countries"]:
+                raise ValueError(
+                    f"Supplier {offer.supplier_id} is not listed for market {self.country}."
+                )
+        return self
+
+
 class CatalogProduct(BaseModel):
     product_id: str = Field(min_length=1, max_length=80)
     title: str = Field(min_length=2, max_length=200)
     sku: str | None = Field(default=None, max_length=100)
     source: str | None = Field(default=None, max_length=100)
+    brand: str | None = Field(default=None, max_length=100)
+    model: str | None = Field(default=None, max_length=100)
+    size: str | None = Field(default=None, max_length=80)
+    color: str | None = Field(default=None, max_length=60)
+    pack_quantity: int | None = Field(default=None, ge=1, le=10000)
+    condition: str | None = Field(default=None, max_length=40)
 
 
 class ProductMatchRequest(BaseModel):
@@ -442,6 +483,112 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
     }
 
 
+@app.post("/api/v1/product-profitability/compare")
+def compare_product_profitability(data: UnifiedProfitabilityComparison):
+    """Join entered supplier offers with observed marketplace prices for one product."""
+    listing_rows = []
+    for listing in data.listings:
+        delivered = listing.price + listing.shipping_cost
+        listing_rows.append({
+            "marketplace": listing.marketplace,
+            "listing_title": listing.listing_title,
+            "item_price": round(listing.price, 2),
+            "shipping_cost": round(listing.shipping_cost, 2),
+            "observed_total_price": round(delivered, 2),
+            "listing_url": listing.listing_url,
+            "observed_sold_count": listing.observed_sold_count,
+            "captured_at": listing.captured_at,
+            "evidence_status": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(listing.listing_url, listing.captured_at),
+        })
+
+    market_prices = [row["observed_total_price"] for row in listing_rows]
+    market_average = sum(market_prices) / len(market_prices)
+    market_median = median(market_prices)
+    market_low = min(market_prices)
+    market_high = max(market_prices)
+    fee_rate = data.platform_fee_percent / 100
+    comparisons = []
+
+    for offer in data.offers:
+        landed = offer.product_cost + offer.shipping_cost + offer.handling_cost
+        planned_fee = data.planned_selling_price * fee_rate
+        planned_profit = (
+            data.planned_selling_price - landed - planned_fee
+            - data.marketing_cost - data.returns_allowance
+        )
+        market_fee = market_average * fee_rate
+        market_profit = (
+            market_average - landed - market_fee
+            - data.marketing_cost - data.returns_allowance
+        )
+        break_even = (
+            (landed + data.marketing_cost + data.returns_allowance) / (1 - fee_rate)
+            if fee_rate < 1 else None
+        )
+        moq_investment = landed * offer.moq if offer.moq is not None else None
+        comparisons.append({
+            "supplier_id": offer.supplier_id,
+            "supplier_name": offer.supplier_name,
+            "product_cost": round(offer.product_cost, 2),
+            "shipping_cost": round(offer.shipping_cost, 2),
+            "handling_cost": round(offer.handling_cost, 2),
+            "landed_cost_per_unit": round(landed, 2),
+            "planned_selling_price": round(data.planned_selling_price, 2),
+            "planned_profit_per_order": round(planned_profit, 2),
+            "planned_profit_margin_percent": round(planned_profit / data.planned_selling_price * 100, 2),
+            "market_average_profit_per_order": round(market_profit, 2),
+            "market_average_profit_margin_percent": round(market_profit / market_average * 100, 2),
+            "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
+            "moq": offer.moq,
+            "estimated_moq_investment": round(moq_investment, 2) if moq_investment is not None else None,
+            "delivery_days": offer.delivery_days,
+            "stock_quantity": offer.stock_quantity,
+            "source_url": offer.source_url,
+            "captured_at": offer.captured_at,
+            "evidence_status": "user_supplied_or_imported_not_live_verified",
+            "evidence_metadata": _evidence_metadata(offer.source_url, offer.captured_at),
+        })
+
+    comparisons.sort(key=lambda row: row["planned_profit_per_order"], reverse=True)
+    return {
+        "product_name": data.product_name,
+        "country": data.country,
+        "currency": data.currency,
+        "marketplace": {
+            "listing_count": len(listing_rows),
+            "lowest_delivered_price": round(market_low, 2),
+            "average_delivered_price": round(market_average, 2),
+            "median_delivered_price": round(market_median, 2),
+            "highest_delivered_price": round(market_high, 2),
+            "price_spread": round(market_high - market_low, 2),
+            "listings": listing_rows,
+        },
+        "supplier_comparisons": comparisons,
+        "best_supplier_by_planned_profit": comparisons[0]["supplier_id"] if comparisons else None,
+        "catalog_match_context": ({
+            **data.catalog_match_context,
+            "status": "catalog_suggestion_selected",
+            "review_required": True,
+            "automated_identity_verified": False,
+        } if data.catalog_match_context else None),
+        "product_identity_review": {
+            "status": "user_confirmed",
+            "verification_method": "manual_checkbox",
+            "automated_catalog_match_performed": False,
+            "review_required": True,
+            "review_note": "User confirmed product identity manually. This is not an automated SKU, brand, model or variant match; inspect supplier and listing specifications before purchase.",
+        },
+        "data_note": (
+            "Supplier quotes and marketplace listings were entered or imported by the user; "
+            "they are not live-verified. Profit estimates use the entered planned price or "
+            "observed marketplace average and the entered fee, marketing and returns costs. "
+            "MOQ investment is landed unit cost multiplied by MOQ; taxes, duties, COD, "
+            "payment fees and unexpected returns are excluded unless entered."
+        ),
+    }
+
+
 @app.post("/api/v1/catalog/match")
 def match_catalog_products(data: ProductMatchRequest):
     """Suggest conservative catalogue matches; conflicting variants are never auto-matched."""
@@ -452,16 +599,45 @@ def match_catalog_products(data: ProductMatchRequest):
         # Numbers often encode model, size, capacity or pack-count variants.
         return set(re.findall(r"\d+(?:\.\d+)?", normalize(value)))
 
+    def matching_model(left: CatalogProduct, right: CatalogProduct) -> bool:
+        return bool(
+            left.model and right.model
+            and normalize(left.model) == normalize(right.model)
+        )
+
+    attribute_fields = ("brand", "model", "size", "color", "pack_quantity", "condition")
+
+    def attribute_conflicts(left: CatalogProduct, right: CatalogProduct) -> list[str]:
+        conflicts = []
+        for field in attribute_fields:
+            lv, rv = getattr(left, field), getattr(right, field)
+            if lv is None or rv is None:
+                continue
+            equal = lv == rv if field == "pack_quantity" else normalize(str(lv)) == normalize(str(rv))
+            if not equal:
+                conflicts.append(field)
+        return conflicts
+
     def similarity(left: CatalogProduct, right: CatalogProduct) -> tuple[float, str | None]:
         left_title, right_title = normalize(left.title), normalize(right.title)
         if not left_title or not right_title:
             return 0.0, None
 
-        if left.sku and right.sku and left.sku.strip().casefold() == right.sku.strip().casefold():
-            return 1.0, "exact_sku"
+        # When both sources expose SKUs, a disagreement is stronger evidence
+        # than a similar title: never fall back to fuzzy matching across SKUs.
+        if left.sku and right.sku:
+            if left.sku.strip().casefold() == right.sku.strip().casefold():
+                return 1.0, "exact_sku"
+            return 0.0, None
 
         left_numbers, right_numbers = numeric_fingerprints(left.title), numeric_fingerprints(right.title)
-        if left_numbers and right_numbers and left_numbers.isdisjoint(right_numbers):
+        # A supplied, matching model attribute can resolve a title that omits
+        # the model number. Without that structured confirmation, stay strict.
+        if (
+            left_numbers != right_numbers
+            and (left_numbers or right_numbers)
+            and not matching_model(left, right)
+        ):
             return 0.0, None
 
         left_tokens, right_tokens = set(left_title.split()), set(right_title.split())
@@ -471,8 +647,33 @@ def match_catalog_products(data: ProductMatchRequest):
         return score, "title_and_variant_compatible" if left_numbers or right_numbers else "title_similarity"
 
     candidates = []
+    excluded_sku_conflicts = 0
+    excluded_variant_ambiguities = 0
+    excluded_attribute_conflict_pairs = 0
     for supplier in data.supplier_products:
         for market in data.marketplace_products:
+            # Count conservative exclusions for diagnostics without returning
+            # potentially sensitive or overly verbose pair-level details.
+            if supplier.sku and market.sku and supplier.sku.strip().casefold() != market.sku.strip().casefold():
+                excluded_sku_conflicts += 1
+                continue
+            if attribute_conflicts(supplier, market):
+                excluded_attribute_conflict_pairs += 1
+                continue
+            exact_sku = bool(
+                supplier.sku and market.sku
+                and supplier.sku.strip().casefold() == market.sku.strip().casefold()
+            )
+            supplier_numbers = numeric_fingerprints(supplier.title)
+            market_numbers = numeric_fingerprints(market.title)
+            if (
+                supplier_numbers != market_numbers
+                and (supplier_numbers or market_numbers)
+                and not exact_sku
+                and not matching_model(supplier, market)
+            ):
+                excluded_variant_ambiguities += 1
+                continue
             score, reason = similarity(supplier, market)
             if reason and score >= data.minimum_similarity:
                 candidates.append({
@@ -501,6 +702,9 @@ def match_catalog_products(data: ProductMatchRequest):
         "match_method": "sku_first_variant_aware_title_similarity",
         "minimum_similarity": data.minimum_similarity,
         "match_count": len(matches),
+        "excluded_sku_conflict_pairs": excluded_sku_conflicts,
+        "excluded_variant_ambiguity_pairs": excluded_variant_ambiguities,
+        "excluded_attribute_conflict_pairs": excluded_attribute_conflict_pairs,
         "matches": matches,
         "unmatched_supplier_product_ids": [
             item.product_id for item in data.supplier_products if item.product_id not in used_supplier
@@ -508,7 +712,7 @@ def match_catalog_products(data: ProductMatchRequest):
         "unmatched_marketplace_product_ids": [
             item.product_id for item in data.marketplace_products if item.product_id not in used_market
         ],
-        "data_note": "SKU/title suggestions only. Conflicting numeric variants are excluded; similar titles still do not prove identical quality, pack size, authenticity, stock, delivery or supplier eligibility. Review every match before pricing or listing.",
+        "data_note": "SKU, supplied attribute and title-based suggestions only. Conflicting known brand, model, size, colour, pack quantity or condition values are excluded. Missing attributes are not inferred; review quality, authenticity, stock, delivery and supplier eligibility before pricing or listing.",
     }
 
 

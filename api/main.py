@@ -599,6 +599,12 @@ def match_catalog_products(data: ProductMatchRequest):
         # Numbers often encode model, size, capacity or pack-count variants.
         return set(re.findall(r"\d+(?:\.\d+)?", normalize(value)))
 
+    def matching_model(left: CatalogProduct, right: CatalogProduct) -> bool:
+        return bool(
+            left.model and right.model
+            and normalize(left.model) == normalize(right.model)
+        )
+
     attribute_fields = ("brand", "model", "size", "color", "pack_quantity", "condition")
 
     def attribute_conflicts(left: CatalogProduct, right: CatalogProduct) -> list[str]:
@@ -625,9 +631,13 @@ def match_catalog_products(data: ProductMatchRequest):
             return 0.0, None
 
         left_numbers, right_numbers = numeric_fingerprints(left.title), numeric_fingerprints(right.title)
-        # A missing numeric fingerprint is ambiguous, not proof of compatibility:
-        # e.g. "iPhone 15 case" must not match a generic "iPhone case".
-        if left_numbers != right_numbers and (left_numbers or right_numbers):
+        # A supplied, matching model attribute can resolve a title that omits
+        # the model number. Without that structured confirmation, stay strict.
+        if (
+            left_numbers != right_numbers
+            and (left_numbers or right_numbers)
+            and not matching_model(left, right)
+        ):
             return 0.0, None
 
         left_tokens, right_tokens = set(left_title.split()), set(right_title.split())
@@ -650,9 +660,18 @@ def match_catalog_products(data: ProductMatchRequest):
             if attribute_conflicts(supplier, market):
                 excluded_attribute_conflict_pairs += 1
                 continue
+            exact_sku = bool(
+                supplier.sku and market.sku
+                and supplier.sku.strip().casefold() == market.sku.strip().casefold()
+            )
             supplier_numbers = numeric_fingerprints(supplier.title)
             market_numbers = numeric_fingerprints(market.title)
-            if supplier_numbers != market_numbers and (supplier_numbers or market_numbers):
+            if (
+                supplier_numbers != market_numbers
+                and (supplier_numbers or market_numbers)
+                and not exact_sku
+                and not matching_model(supplier, market)
+            ):
                 excluded_variant_ambiguities += 1
                 continue
             score, reason = similarity(supplier, market)
