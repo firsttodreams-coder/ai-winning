@@ -601,6 +601,26 @@ def test_unified_profitability_preserves_catalog_match_as_unverified_context():
     assert context["similarity"] == 0.87
 
 
+def test_unified_profitability_rejects_malformed_catalog_match_context_with_422():
+    payload = {
+        "product_name": "USB Blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 5000, "product_identity_confirmed": True,
+        "offers": [{"supplier_id": "zambeel", "supplier_name": "Zambeel", "product_cost": 1800}],
+        "listings": [{"marketplace": "Daraz", "price": 4500}],
+        "catalog_match_context": {
+            "supplier_product_id": "s-1", "supplier_title": "USB Blender",
+            "marketplace_product_id": "m-1", "marketplace_title": "USB Blender",
+            "similarity": "not-a-number"
+        }
+    }
+    malformed_similarity = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert malformed_similarity.status_code == 422
+
+    del payload["catalog_match_context"]["marketplace_title"]
+    incomplete_context = client.post("/api/v1/product-profitability/compare", json=payload)
+    assert incomplete_context.status_code == 422
+
+
 def test_unified_profitability_rejects_invalid_catalog_match_similarity():
     payload = {
         "product_name": "USB Blender", "country": "PK", "currency": "PKR",
