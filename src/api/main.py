@@ -566,7 +566,16 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
             "listings": listing_rows,
         },
         "supplier_comparisons": comparisons,
-        "best_supplier_by_planned_profit": comparisons[0]["supplier_id"] if comparisons else None,
+        "best_supplier_by_planned_profit": (
+            comparisons[0]["supplier_id"]
+            if comparisons and comparisons[0]["planned_profit_per_order"] > 0
+            else None
+        ),
+        "recommendation_status": (
+            "positive_estimated_profit_available"
+            if comparisons and comparisons[0]["planned_profit_per_order"] > 0
+            else "no_positive_estimated_profit"
+        ),
         "catalog_match_context": ({
             **data.catalog_match_context.model_dump(),
             "status": "catalog_suggestion_selected",
