@@ -549,6 +549,29 @@ def test_unified_profitability_comparison_joins_market_and_supplier_costs():
     assert first["market_average_profit_per_order"] == 700
     assert result["best_supplier_by_planned_profit"] == "zambeel"
     assert result["marketplace"]["listings"][0]["evidence_status"] == "user_supplied_or_imported_not_live_verified"
+    assert result["recommendation_status"] == "positive_estimated_profit_available"
+
+
+def test_unified_profitability_does_not_recommend_a_supplier_when_all_estimated_profits_are_non_positive():
+    response = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "Portable blender", "country": "PK", "currency": "PKR",
+        "planned_selling_price": 500, "product_identity_confirmed": True,
+        "offers": [
+            {"supplier_id": "zambeel", "supplier_name": "Zambeel",
+             "product_cost": 500, "shipping_cost": 100, "handling_cost": 20},
+            {"supplier_id": "custom", "supplier_name": "Custom supplier",
+             "product_cost": 700, "shipping_cost": 50}
+        ],
+        "listings": [
+            {"marketplace": "Daraz", "price": 1400, "shipping_cost": 100},
+            {"marketplace": "Marketplace B", "price": 1600}
+        ]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert all(item["planned_profit_per_order"] <= 0 for item in result["supplier_comparisons"])
+    assert result["best_supplier_by_planned_profit"] is None
+    assert result["recommendation_status"] == "no_positive_estimated_profit"
 
 
 def test_unified_profitability_comparison_rejects_wrong_currency_and_supplier_market():
