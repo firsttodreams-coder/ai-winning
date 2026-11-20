@@ -10,7 +10,7 @@ def test_supplier_and_marketplace_csv_importers_support_50_dynamic_rows():
     assert "Math.min(50,Math.max(3,requestedCount))" in html
     assert 'ensureNumberedSlots("supplierQuote",parsed.length)' in html
     assert 'ensureNumberedSlots("marketplace",parsed.length)' in html
-    assert html.count("records.length>50") == 2
+    assert html.count("records.length>50") == 3
     assert 'getNumberedSlotCount("supplierQuote")' in html
     assert 'getNumberedSlotCount("marketplace")' in html
     assert "records.length>3" not in html
