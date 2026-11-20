@@ -308,7 +308,7 @@ function ensureNumberedSlots(prefix,requestedCount){
   clone.querySelectorAll("[id]").forEach(element=>{
    element.id=element.id.replace(/1$/,String(slot));
    if(element.tagName==="INPUT"){
-    const zeroDefault=prefix==="marketplace"?element.id.startsWith("marketShip"):/(Shipping|Handling)$/.test(element.id);
+    const zeroDefault=prefix==="marketplace"?element.id.startsWith("marketShip"):/(Shipping|Handling)\d+$/.test(element.id);
     element.value=zeroDefault?"0":"";
     delete element.dataset.capturedAt;
    }else if(element.tagName==="SELECT"){
