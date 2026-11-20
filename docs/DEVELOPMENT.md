@@ -41,7 +41,15 @@ Important limitations:
 ## Product economics
 POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and break-even price using the costs and price supplied by the user.
 
-## Current integration status (15 November 2026)
+## Supplier and marketplace CSV imports
+
+The bilingual browser importer accepts up to 50 supplier quote rows and up to 50 marketplace listing rows per CSV file. It validates the complete file before changing the form, rejects files above the limit, and dynamically creates the matching comparison inputs so all imported rows can be reviewed and edited. Supplier rows are checked against the selected country's available supplier IDs; marketplace rows validate positive prices, non-negative shipping, optional sold counts, source URLs and capture timestamps.
+
+Imported prices, stock and sold counts remain user-supplied observations. CSV import does not connect a supplier account, fetch a marketplace feed or independently verify the source. The backend comparison endpoints also cap each offers/listings array at 50 records.
+
+The API and backend GitHub Actions workflows extract the inline JavaScript from `index.html` and run `node --check` so syntax errors in the mobile/desktop interface are caught alongside Python tests.
+
+## Current integration status (20 November 2026)
 
 Already implemented in the repository: bilingual country-level Trends display; the supplier directory API and frontend; supplier quote and marketplace listing comparison APIs; CSV import templates for manually observed evidence; source URLs and capture-time freshness metadata; currency/country validation; supplier-to-marketplace candidate matching; and API tests in GitHub Actions. These features do not imply that a supplier account is connected or that marketplace prices, stock, sales counts or competitor counts are being fetched automatically.
 
