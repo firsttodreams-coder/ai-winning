@@ -28,7 +28,7 @@ jobs:
           scripts = re.findall(r"<script[^>]*>(.*?)</script>", html, flags=re.IGNORECASE | re.DOTALL)
           if not scripts:
               raise SystemExit("No inline script found in index.html")
-          Path("/tmp/ai-winning-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/ai-winning-inline.js").write_text("\n".join(scripts), encoding="utf-8")
           PY
           node --check /tmp/ai-winning-inline.js
       - name: Run API tests
