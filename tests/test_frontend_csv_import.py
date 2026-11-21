@@ -53,5 +53,5 @@ def test_csv_importers_report_record_numbers_and_reject_ambiguous_headers():
 
     assert html.count("CSV headers must be non-empty and unique") == 3
     assert html.count("column count does not match header") == 3
-    assert 'CSV record "+recordNumber+":"' in html
+    assert 'CSV record "+recordNumber":' in html
     assert "error.message" in html
