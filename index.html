@@ -457,10 +457,10 @@ function parseSupplierQuoteCsv(source){
    continue;
   }
   if(afterQuote){
-   if(ch===" "||ch==="\\t")continue;
+   if(ch===" "||ch==="\t")continue;
    if(ch===","){pushField();afterQuote=false;continue;}
-   if(ch==="\\n"||ch==="\\r"){
-    if(ch==="\\r"&&source[i+1]==="\\n")i++;
+   if(ch==="\n"||ch==="\r"){
+    if(ch==="\r"&&source[i+1]==="\n")i++;
     pushRow();afterQuote=false;continue;
    }
    throw new Error("CSV record "+recordNumber+": unexpected character after closing quote");
@@ -469,8 +469,8 @@ function parseSupplierQuoteCsv(source){
    if(field.length)throw new Error("CSV record "+recordNumber+": quote inside unquoted field");
    quoted=true;
   }else if(ch===",")pushField();
-  else if(ch==="\\n"||ch==="\\r"){
-   if(ch==="\\r"&&source[i+1]==="\\n")i++;
+  else if(ch==="\n"||ch==="\r"){
+   if(ch==="\r"&&source[i+1]==="\n")i++;
    pushRow();
   }else field+=ch;
  }
