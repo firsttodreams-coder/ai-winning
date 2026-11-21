@@ -43,7 +43,7 @@ POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and brea
 
 ## Supplier and marketplace CSV imports
 
-The bilingual browser importer accepts up to 50 supplier quote rows and up to 50 marketplace listing rows per CSV file. It validates the complete file before changing the form, rejects files above the limit, and dynamically creates the matching comparison inputs so all imported rows can be reviewed and edited. Supplier rows are checked against the selected country's available supplier IDs; marketplace rows validate positive prices, non-negative shipping, optional sold counts, source URLs and capture timestamps.
+The bilingual browser importer accepts up to 50 supplier quote rows and up to 50 marketplace listing rows per CSV file. It validates the complete file before changing the form, rejects files above the limit, and dynamically creates the matching comparison inputs so all imported rows can be reviewed and edited. Supplier rows are checked against the selected country's available supplier IDs; marketplace rows validate positive prices, non-negative shipping, optional sold counts, source URLs and capture timestamps. The CSV parser supports quoted commas, escaped quotes and multiline fields, rejects malformed quote placement, duplicate or empty headers and row-width mismatches, and displays the affected CSV record number for row validation errors.
 
 Imported prices, stock and sold counts remain user-supplied observations. CSV import does not connect a supplier account, fetch a marketplace feed or independently verify the source. The backend comparison endpoints also cap each offers/listings array at 50 records.
 
