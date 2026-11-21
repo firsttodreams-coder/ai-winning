@@ -445,21 +445,38 @@ async function loadCountryTrends(){
 }
 $("loadCountryTrends").addEventListener("click",loadCountryTrends);
 function parseSupplierQuoteCsv(source){
- const rows=[];let row=[],field="",quoted=false;
+ const rows=[];let row=[],field="",quoted=false,afterQuote=false,recordNumber=1;
+ const pushField=()=>{row.push(field);field="";};
+ const pushRow=()=>{pushField();if(row.some(value=>String(value).trim()!==""))rows.push(row);row=[];recordNumber++;};
  for(let i=0;i<source.length;i++){
   const ch=source[i];
   if(quoted){
    if(ch==='"'&&source[i+1]==='"'){field+='"';i++;}
-   else if(ch==='"')quoted=false;
+   else if(ch==='"'){quoted=false;afterQuote=true;}
    else field+=ch;
-  }else if(ch==='"')quoted=true;
-  else if(ch===","){row.push(field);field="";}
-  else if(ch==="\n"){row.push(field.replace(/\r$/,""));rows.push(row);row=[];field="";}
-  else field+=ch;
+   continue;
+  }
+  if(afterQuote){
+   if(ch===" "||ch==="\\t")continue;
+   if(ch===","){pushField();afterQuote=false;continue;}
+   if(ch==="\\n"||ch==="\\r"){
+    if(ch==="\\r"&&source[i+1]==="\\n")i++;
+    pushRow();afterQuote=false;continue;
+   }
+   throw new Error("CSV record "+recordNumber+": unexpected character after closing quote");
+  }
+  if(ch==='"'){
+   if(field.length)throw new Error("CSV record "+recordNumber+": quote inside unquoted field");
+   quoted=true;
+  }else if(ch===",")pushField();
+  else if(ch==="\\n"||ch==="\\r"){
+   if(ch==="\\r"&&source[i+1]==="\\n")i++;
+   pushRow();
+  }else field+=ch;
  }
- if(quoted)throw new Error("Unclosed CSV quote");
- if(field.length||row.length){row.push(field.replace(/\r$/,""));rows.push(row);}
- return rows.filter(item=>item.some(value=>String(value).trim()!==""));
+ if(quoted)throw new Error("CSV record "+recordNumber+": unclosed quoted field");
+ if(afterQuote||field.length||row.length)pushRow();
+ return rows;
 }
 $("downloadMarketCsvTemplate").addEventListener("click",()=>{
  const csv="marketplace,price,shipping_cost,listing_url,observed_sold_count,captured_at\r\n";
@@ -472,14 +489,17 @@ $("marketListingCsv").addEventListener("change",async event=>{
   const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no listing rows");
   const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["marketplace","price","shipping_cost","listing_url","observed_sold_count"];
+  if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
   if(required.some(key=>!headers.includes(key)))throw new Error("CSV headers do not match template");
   const records=rows.slice(1);
   if(records.length>50){status.textContent=translations[language].marketCsvTooMany;return;}
   if(!records.length)throw new Error("CSV has no listing rows");
-  const parsed=records.map(record=>{
-   const values=Object.fromEntries(headers.map((key,index)=>[key,(record[index]||"").trim()]));
+  const parsed=records.map((record,index)=>{
+   const recordNumber=index+2;
+   if(record.length!==headers.length)throw new Error("CSV record "+recordNumber+": column count does not match header");
+   const values=Object.fromEntries(headers.map((key,column)=>[key,(record[column]||"").trim()]));
    const marketplace=values.marketplace,price=Number(values.price),shipping=values.shipping_cost===""?0:Number(values.shipping_cost),sold=values.observed_sold_count===""?null:Number(values.observed_sold_count);
-   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||(values.listing_url&&!/^https?:\/\//i.test(values.listing_url))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("Invalid listing row");
+   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||(values.listing_url&&!/^https?:\/\//i.test(values.listing_url))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("CSV record "+recordNumber+": invalid marketplace listing values");
    return {marketplace,price,shipping,sold,listingUrl:values.listing_url||"",capturedAt:values.captured_at||""};
   });
   ensureNumberedSlots("marketplace",parsed.length);
@@ -490,7 +510,7 @@ $("marketListingCsv").addEventListener("change",async event=>{
    select.value=item.marketplace;$("marketPrice"+slot).value=String(item.price);$("marketShip"+slot).value=String(item.shipping);$("marketUrl"+slot).value=item.listingUrl;$("marketPrice"+slot).dataset.capturedAt=item.capturedAt;$("marketSold"+slot).value=item.sold===null?"":String(item.sold);
   });
   status.textContent=translations[language].marketCsvSuccess;
- }catch(error){console.warn(error);status.textContent=translations[language].marketCsvError;}finally{input.value="";}
+ }catch(error){console.warn(error);status.textContent=translations[language].marketCsvError+" ("+error.message+")";}finally{input.value="";}
 });
 $("downloadSupplierCsvTemplate").addEventListener("click",()=>{
  const csv="supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,moq,source_url,captured_at\r\n";
@@ -503,16 +523,19 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
   const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no quote rows");
   const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["supplier_id","supplier_name","product_cost","shipping_cost","handling_cost","delivery_days","stock_quantity","source_url"];
+  if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
   if(required.some(key=>!headers.includes(key)))throw new Error("CSV headers do not match template");
   const records=rows.slice(1);
   if(records.length>50){status.textContent=translations[language].supplierQuoteCsvTooMany;return;}
   if(!records.length)throw new Error("CSV has no quote rows");
   const parsed=records.map((record,index)=>{
+   const recordNumber=index+2;
+   if(record.length!==headers.length)throw new Error("CSV record "+recordNumber+": column count does not match header");
    const values=Object.fromEntries(headers.map((key,column)=>[key,(record[column]||"").trim()])),supplierId=values.supplier_id,availableSelect=$("supplierQuote1");
-   if(!supplierId||![...availableSelect.options].some(option=>option.value===supplierId))throw new Error("Supplier ID unavailable for selected country");
+   if(!supplierId||![...availableSelect.options].some(option=>option.value===supplierId))throw new Error("CSV record "+recordNumber+": supplier ID unavailable for selected country");
    const cost=Number(values.product_cost),shipping=values.shipping_cost===""?0:Number(values.shipping_cost),handling=values.handling_cost===""?0:Number(values.handling_cost),delivery=values.delivery_days===""?null:Number(values.delivery_days),stock=values.stock_quantity===""?null:Number(values.stock_quantity),moq=values.moq===""||values.moq===undefined?null:Number(values.moq);
-   if(!Number.isFinite(cost)||cost<0||!Number.isFinite(shipping)||shipping<0||!Number.isFinite(handling)||handling<0||(delivery!==null&&(!Number.isInteger(delivery)||delivery<0||delivery>365))||(stock!==null&&(!Number.isInteger(stock)||stock<0))||(moq!==null&&(!Number.isInteger(moq)||moq<1))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("Invalid numeric quote value or capture timestamp");
-   if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("Invalid source URL");
+   if(!Number.isFinite(cost)||cost<0||!Number.isFinite(shipping)||shipping<0||!Number.isFinite(handling)||handling<0||(delivery!==null&&(!Number.isInteger(delivery)||delivery<0||delivery>365))||(stock!==null&&(!Number.isInteger(stock)||stock<0))||(moq!==null&&(!Number.isInteger(moq)||moq<1))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("CSV record "+recordNumber+": invalid numeric quote value or capture timestamp");
+   if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("CSV record "+recordNumber+": invalid source URL");
    return {supplierId,cost,shipping,handling,delivery,stock,moq,sourceUrl:values.source_url||"",capturedAt:values.captured_at||""};
   });
   ensureNumberedSlots("supplierQuote",parsed.length);
@@ -521,7 +544,7 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
    const slot=index+1;$("supplierQuote"+slot).value=item.supplierId;$("supplierQuoteCost"+slot).value=String(item.cost);$("supplierQuoteShipping"+slot).value=String(item.shipping);$("supplierQuoteHandling"+slot).value=String(item.handling);$("supplierQuoteDelivery"+slot).value=item.delivery===null?"":String(item.delivery);$("supplierQuoteStock"+slot).value=item.stock===null?"":String(item.stock);$("supplierQuoteMoq"+slot).value=item.moq===null?"":String(item.moq);$("supplierQuoteUrl"+slot).value=item.sourceUrl;$("supplierQuoteCost"+slot).dataset.capturedAt=item.capturedAt;
   });
   status.textContent=translations[language].supplierQuoteCsvSuccess;
- }catch(error){console.warn(error);status.textContent=translations[language].supplierQuoteCsvError;}finally{input.value="";}
+ }catch(error){console.warn(error);status.textContent=translations[language].supplierQuoteCsvError+" ("+error.message+")";}finally{input.value="";}
 });
 $("compareSupplierQuotes").addEventListener("click",async()=>{
  const t=translations[language],status=$("supplierQuoteStatus"),box=$("supplierQuoteResults"),button=$("compareSupplierQuotes");
@@ -638,13 +661,16 @@ function parseCatalogFile(text){
  const rows=parseSupplierQuoteCsv(text.replace(/^\ufeff/,""));
  if(rows.length<2)throw new Error("CSV has no product rows");
  const headers=rows[0].map(value=>value.trim().toLowerCase());
+ if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
  if(!headers.includes("product_id")||!headers.includes("title"))throw new Error("Missing product_id/title headers");
  const records=rows.slice(1);
  if(records.length>50)throw new Error("Maximum 50 products per file");
  return records.map((row,index)=>{
+  const recordNumber=index+2;
+  if(row.length!==headers.length)throw new Error("CSV record "+recordNumber+": column count does not match header");
   const values=Object.fromEntries(headers.map((key,i)=>[key,(row[i]||"").trim()]));
   const title=values.title,productId=values.product_id||("row-"+(index+1));
-  if(!title||title.length>200||productId.length>100)throw new Error("Invalid product title or ID");
+  if(!title||title.length>200||productId.length>100)throw new Error("CSV record "+recordNumber+": invalid product title or ID");
   return {product_id:productId,title,sku:values.sku||null,source:values.source||null};
  });
 }
@@ -655,7 +681,7 @@ async function loadCatalogCsv(inputId,which){
   const rows=parseCatalogFile(await file.text());
   if(which==="supplier")supplierCatalogRows=rows;else marketCatalogRows=rows;
   status.textContent=(which==="supplier"?translations[language].catalogSupplierCsv:translations[language].catalogMarketCsv)+": "+rows.length;
- }catch(error){console.warn(error);status.textContent=translations[language].catalogMatchError;if(which==="supplier")supplierCatalogRows=null;else marketCatalogRows=null;}
+ }catch(error){console.warn(error);status.textContent=translations[language].catalogMatchError+" ("+error.message+")";if(which==="supplier")supplierCatalogRows=null;else marketCatalogRows=null;}
  finally{input.value="";}
 }
 $("supplierCatalogCsv").addEventListener("change",()=>loadCatalogCsv("supplierCatalogCsv","supplier"));
