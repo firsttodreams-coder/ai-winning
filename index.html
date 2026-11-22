@@ -779,7 +779,17 @@ $("runMarketComparison").addEventListener("click",async()=>{
   if(!response.ok)throw new Error("Marketplace comparison API "+response.status);
   const r=await response.json(),m=r.marketplace_prices,fmt=v=>new Intl.NumberFormat(language==="ur"?"ur-PK":"en-US",{maximumFractionDigits:2}).format(v),money=v=>r.currency+" "+fmt(v);
   const item=(label,value)=>'<div><span>'+escapeResearchText(label)+'</span><strong>'+escapeResearchText(value)+'</strong></div>';
-  box.innerHTML=item(t.marketLowResult,money(m.lowest_delivered_price))+item(t.marketAvgResult,money(m.average_delivered_price))+item(t.marketMedianResult,money(m.median_delivered_price))+item(t.marketHighResult,money(m.highest_delivered_price))+item(t.marketLandedResult,money(r.supplier.landed_cost))+item(t.marketProfitResult,money(r.estimated_profit_per_order))+item(t.marketMarginResult,fmt(r.estimated_profit_margin_percent)+"%")+item(t.marketBreakEvenResult,money(r.break_even_selling_price))+item(t.marketSpreadResult,money(m.price_spread))+item(t.marketPositionResult,(r.planned_price_position==="below_average"?t.marketBelowAverage:r.planned_price_position==="near_average"?t.marketNearAverage:t.marketAboveAverage)+" ("+fmt(r.planned_price_vs_market_average_percent)+"%)");
+
+  const grouped=(m.by_marketplace||[]).map(group=>"<article class=\"supplier-card\"><strong>"+escapeResearchText(group.marketplace)+"</strong><p>"+
+   escapeResearchText(language==="ur"?"لسٹنگز":"Listings")+": "+fmt(group.listing_count)+" · "+
+   escapeResearchText(t.marketAvgResult)+": "+money(group.average_delivered_price)+" · "+
+   escapeResearchText(t.marketLowResult)+": "+money(group.lowest_delivered_price)+" · "+
+   escapeResearchText(t.marketHighResult)+": "+money(group.highest_delivered_price)+
+   "</p><p class=\"meta\">"+fmt(group.observed_sold_count_samples)+" "+
+   escapeResearchText(language==="ur"?"فروخت کے درج شدہ مشاہدات":"user-entered sold-count observations")+
+   "</p></article>").join("");
+
+  box.innerHTML=grouped+item(t.marketLowResult,money(m.lowest_delivered_price))+item(t.marketAvgResult,money(m.average_delivered_price))+item(t.marketMedianResult,money(m.median_delivered_price))+item(t.marketHighResult,money(m.highest_delivered_price))+item(t.marketLandedResult,money(r.supplier.landed_cost))+item(t.marketProfitResult,money(r.estimated_profit_per_order))+item(t.marketMarginResult,fmt(r.estimated_profit_margin_percent)+"%")+item(t.marketBreakEvenResult,money(r.break_even_selling_price))+item(t.marketSpreadResult,money(m.price_spread))+item(t.marketPositionResult,(r.planned_price_position==="below_average"?t.marketBelowAverage:r.planned_price_position==="near_average"?t.marketNearAverage:t.marketAboveAverage)+" ("+fmt(r.planned_price_vs_market_average_percent)+"%)");
   const evidenceSummary=r.listings.map(item=>item.marketplace+": "+(item.evidence_metadata?.freshness_status||"unknown")+" ("+(item.evidence_metadata?.source_domain||"—")+")").join(" | ");
   status.textContent=t.evidenceFreshness+": "+evidenceSummary+" · "+r.data_note;
  }catch(error){console.error(error);status.textContent=t.marketCompareFailed;}
