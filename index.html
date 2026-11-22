@@ -739,6 +739,12 @@ $("runUnifiedProfitability").addEventListener("click",async()=>{
     metric(t.unifiedProfitabilityMargin,fmt(item.planned_profit_margin_percent)+'%')+
     metric(language==="ur"?"Investment par ROI":"Return on investment (ROI)",item.planned_roi_percent===null?"—":fmt(item.planned_roi_percent)+"%")+
     metric(t.unifiedProfitabilityMarketProfit,money(item.market_average_profit_per_order))+
+    '<div class="discovery-note"><strong>'+(language==="ur"?"Marketplace ke hisaab se andazati munafa":"Estimated profit by marketplace") + '</strong></div>'+
+    (item.marketplace_profitability||[]).map(group=>'<div class="supplier-card"><strong>'+escapeResearchText(group.marketplace)+'</strong>'+
+     metric(language==="ur"?"Average price par munafa":"Profit at average price",money(group.estimated_profit_at_average_price))+
+     metric(language==="ur"?"Lowest price par munafa":"Profit at lowest observed price",money(group.estimated_profit_at_lowest_price))+
+     metric(language==="ur"?"Average price par margin":"Margin at average price",fmt(group.estimated_margin_at_average_price_percent)+'%')+
+     '<p class="meta">Listings: '+escapeResearchText(group.listing_count)+'</p></div>').join("")+
     (item.moq!==null?metric(t.unifiedProfitabilityMoqInvestment,money(item.estimated_moq_investment)):"")+
     '<p class="meta">'+escapeResearchText(t.supplierQuoteDelivery)+': '+escapeResearchText(item.delivery_days??"—")+' · '+escapeResearchText(t.supplierQuoteStock)+': '+escapeResearchText(item.stock_quantity??"—")+'</p>'+
     '<p class="meta">'+escapeResearchText(t.evidenceFreshness)+': '+escapeResearchText(item.evidence_metadata?.freshness_status||"unknown")+' · '+escapeResearchText(item.evidence_metadata?.source_domain||"—")+'</p>'+
