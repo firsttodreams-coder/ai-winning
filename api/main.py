@@ -169,6 +169,21 @@ class ProductDiscoveryRequest(BaseModel):
     candidates: list[ProductOpportunityCandidate] = Field(min_length=1, max_length=50)
 
 
+class ProductTrendCheckRequest(BaseModel):
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
+    product_names: list[str] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_product_names(self):
+        cleaned = [name.strip() for name in self.product_names]
+        if any(len(name) < 2 or len(name) > 120 for name in cleaned):
+            raise ValueError("Each product name must contain 2 to 120 characters.")
+        if len({name.casefold() for name in cleaned}) != len(cleaned):
+            raise ValueError("Product names must be unique.")
+        self.product_names = cleaned
+        return self
+
+
 class SupplierOffer(BaseModel):
     supplier_id: str = Field(min_length=2, max_length=60)
     supplier_name: str = Field(min_length=2, max_length=120)
@@ -438,6 +453,46 @@ async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN
         ),
     }
 
+
+
+@app.post("/api/v1/product-discovery/trend-check")
+async def batch_product_trend_check(data: ProductTrendCheckRequest):
+    """Check multiple product names against one fresh country-level Trends feed."""
+    feed_url = f"https://trends.google.com/trending/rss?geo={data.country}"
+    try:
+        async with httpx.AsyncClient(
+            timeout=12.0,
+            follow_redirects=True,
+            headers={"User-Agent": "AI-Winning-Product-Finder/0.2 (+public-trends-reader)"},
+        ) as client:
+            response = await client.get(feed_url)
+            response.raise_for_status()
+        trends = parse_google_trends_rss(response.text)
+    except (httpx.HTTPError, ET.ParseError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Public Google Trends feed is temporarily unavailable. Please try again later.",
+        ) from exc
+
+    results = []
+    for product_name in data.product_names:
+        matches = match_product_to_trends(product_name, trends)
+        results.append({
+            "product_name": product_name,
+            "match_count": len(matches),
+            "matches": matches,
+            "interpretation": "literal_trend_title_overlap_only",
+            "verified_product_demand": False,
+        })
+    return {
+        "country": data.country,
+        "country_name": TREND_COUNTRIES[data.country],
+        "source": feed_url,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "count": len(results),
+        "results": results,
+        "data_note": "One country-level Google Trends feed was checked for all submitted products. Matches are lexical discovery hints only; broad trends do not prove product-specific demand, marketplace sales, or a sales forecast. No match does not mean no demand.",
+    }
 
 
 @app.get("/api/v1/suppliers")
