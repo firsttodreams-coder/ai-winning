@@ -97,3 +97,33 @@ Current readiness rules:
 A status of `configured_not_verified` means only that required environment variables exist. `connection_verified` and `live_catalog_fetch_enabled` remain false until an authenticated provider request and response validation are implemented. Manual product URL review and CSV import remain the fallback. Never paste supplier secrets into GitHub source files, frontend code, or chat; add approved credentials only as deployment secrets.
 
 Tests in `tests/test_supplier_connectors.py` cover missing/configured readiness, no secret disclosure, and manual fallback behavior.
+
+
+
+## Product discovery ranking API (22 November 2026)
+
+POST `/api/v1/product-discovery/rank` ranks 1–50 candidate products for a supported country using the existing transparent signal weights (demand 30%, competition advantage 20%, margin 25%, shipping 10%, trend 15%). Each candidate includes a unique ID, product name, country, matching currency, optional city/category, five 1–10 signal ratings, and optional evidence entries with type, source name, URL and capture timestamp.
+
+The response sorts candidates by weighted score and then reports evidence-link coverage and timestamp freshness. Evidence confidence labels describe coverage only; they do not mean demand or sales have been verified. All source entries remain marked as submitted and not independently verified. The API deliberately returns no sales forecast and does not create sales counts, supplier prices, stock, or competitor numbers. City is recorded as context only; this endpoint does not provide city-level market data.
+
+Example request:
+
+```json
+{
+  "candidates": [{
+    "candidate_id": "lamp-1",
+    "product_name": "Rechargeable LED Lamp",
+    "country": "PK",
+    "city": "Lahore",
+    "category": "Home",
+    "currency": "PKR",
+    "signals": {"demand": 7, "competition": 6, "margin": 8, "shipping": 8, "trend": 6},
+    "evidence": [{
+      "evidence_type": "marketplace_listing",
+      "source_name": "Daraz",
+      "source_url": "https://www.daraz.pk/",
+      "captured_at": "2026-11-22T08:00:00Z"
+    }]
+  }]
+}
+```
