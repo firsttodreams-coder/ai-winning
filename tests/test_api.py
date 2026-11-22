@@ -733,6 +733,7 @@ def test_unified_profitability_comparison_joins_market_and_supplier_costs():
     assert first["supplier_id"] == "zambeel"
     assert first["landed_cost_per_unit"] == 620
     assert first["planned_profit_per_order"] == 655
+    assert first["planned_roi_percent"] == 105.65
     assert first["estimated_moq_investment"] == 1860
     assert first["market_average_profit_per_order"] == 700
     assert result["best_supplier_by_planned_profit"] == "zambeel"
