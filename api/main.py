@@ -15,12 +15,15 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
+from api.connectors import router as supplier_connectors_router
 
 app = FastAPI(
     title="AI Winning Product Finder API",
     description="Open API for transparent product scoring and public market signals.",
     version="0.2.0",
 )
+
+app.include_router(supplier_connectors_router)
 
 app.add_middleware(
     CORSMiddleware,
