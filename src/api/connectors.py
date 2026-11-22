@@ -51,6 +51,8 @@ CONNECTOR_DEFINITIONS = (
         "id": "wave-byte",
         "name": "Wave Byte",
         "countries": ["AE", "SA", "OM", "QA", "KW", "BH"],
+        "dropshipping_countries": ["AE", "SA", "OM"],
+        "fulfillment_countries": ["AE", "SA", "OM", "QA", "KW", "BH"],
         "integration_type": "official_shopify_app_or_approved_feed",
         "required_environment": [],
         "public_catalog": "https://wavebyte.ae/",
