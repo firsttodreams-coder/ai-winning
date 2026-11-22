@@ -253,6 +253,28 @@ def test_product_trend_match_uses_literal_token_overlap_and_excludes_weak_matche
     assert result[0]["relevance"] == "strong"
 
 
+def test_product_trend_match_supports_urdu_and_mixed_script_titles():
+    trends = [
+        {"title": "پورٹیبل بلینڈر کی قیمت", "approx_traffic": "500+", "started": None, "news": []},
+        {"title": "portable blender deals", "approx_traffic": "2000+", "started": None, "news": []},
+        {"title": "فٹبال میچ", "approx_traffic": "1000+", "started": None, "news": []},
+    ]
+    result = api_module.match_product_to_trends("پورٹیبل بلینڈر", trends)
+    assert len(result) == 1
+    assert result[0]["title"] == "پورٹیبل بلینڈر کی قیمت"
+    assert result[0]["match_score"] == 100
+    assert result[0]["matched_terms"] == ["بلینڈر", "پورٹیبل"]
+
+
+def test_product_trend_match_handles_mixed_urdu_and_english_tokens():
+    result = api_module.match_product_to_trends(
+        "portable بلینڈر",
+        [{"title": "portable بلینڈر قیمت", "approx_traffic": "100+", "started": None, "news": []}],
+    )
+    assert len(result) == 1
+    assert result[0]["match_score"] == 100
+
+
 def test_product_trend_match_returns_partial_for_half_the_product_terms():
     result = api_module.match_product_to_trends(
         "wireless portable",
