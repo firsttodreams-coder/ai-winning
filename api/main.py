@@ -4,6 +4,8 @@ Scores and economics use user-provided inputs. Google Trends RSS is a broad
 country-level discovery signal, not product-specific demand or sales data.
 """
 from datetime import datetime, timezone
+import csv
+import io
 from email.utils import parsedate_to_datetime
 from statistics import median
 from difflib import SequenceMatcher
@@ -356,6 +358,23 @@ class ProductMatchRequest(BaseModel):
     minimum_similarity: float = Field(default=0.45, ge=0, le=1)
 
 
+class SupplierCatalogImportRequest(BaseModel):
+    supplier_id: str = Field(min_length=2, max_length=60)
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    csv_content: str = Field(min_length=10, max_length=2_000_000)
+
+    @model_validator(mode="after")
+    def validate_supplier_market(self):
+        _validate_market_currency(self.country, self.currency)
+        supplier = next((item for item in SUPPLIERS if item["id"] == self.supplier_id), None)
+        if supplier is None:
+            raise ValueError("Supplier ID is not in the supported supplier directory.")
+        if self.country not in supplier["countries"]:
+            raise ValueError(f"Supplier {self.supplier_id} is not listed for market {self.country}.")
+        return self
+
+
 class ProductEconomics(BaseModel):
     currency: str = Field(default="USD", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     selling_price: float = Field(gt=0, le=100000000)
@@ -607,6 +626,121 @@ def supplier_directory(country: str = Query(..., pattern=r"^(PK|AE|SA|OM|QA|KW|B
         "suppliers": suppliers,
         "data_note": "Directory information only. No supplier account is connected and no live price, stock, delivery promise, or order status is being fetched.",
     }
+
+
+@app.post("/api/v1/supplier-catalog/import")
+def import_supplier_catalog(data: SupplierCatalogImportRequest):
+    """Validate and normalize a supplier CSV without claiming a live connection."""
+    try:
+        reader = csv.DictReader(io.StringIO(data.csv_content.lstrip("\ufeff")))
+        if not reader.fieldnames:
+            raise ValueError("CSV header row is missing.")
+        aliases = {
+            "product_id": ("product_id", "supplier_product_id", "id", "sku"),
+            "title": ("title", "product_title", "product_name", "name"),
+            "sku": ("sku", "seller_sku", "product_sku"),
+            "brand": ("brand", "manufacturer"),
+            "model": ("model", "model_number"),
+            "size": ("size", "product_size"),
+            "color": ("color", "colour"),
+            "product_cost": ("product_cost", "supplier_price", "cost", "price"),
+            "shipping_cost": ("shipping_cost", "delivery_cost", "shipping", "delivery"),
+            "handling_cost": ("handling_cost", "handling"),
+            "delivery_days": ("delivery_days", "dispatch_days", "lead_time_days"),
+            "stock_quantity": ("stock_quantity", "stock", "inventory", "quantity"),
+            "moq": ("moq", "minimum_order_quantity"),
+            "source_url": ("source_url", "product_url", "url", "link"),
+            "captured_at": ("captured_at", "updated_at", "snapshot_at"),
+        }
+        normalized_headers = {str(name).strip().lower(): name for name in reader.fieldnames if name}
+        selected = {
+            target: next((normalized_headers[name] for name in names if name in normalized_headers), None)
+            for target, names in aliases.items()
+        }
+        if selected["title"] is None or selected["product_cost"] is None:
+            raise ValueError("CSV must include product title/name and product cost/price columns.")
+
+        def cell(row, field):
+            column = selected[field]
+            value = row.get(column) if column else None
+            return str(value).strip() if value is not None and str(value).strip() else None
+
+        def number(row, field, integer=False, required=False):
+            value = cell(row, field)
+            if value is None:
+                if required:
+                    raise ValueError(f"Missing required value: {field}.")
+                return None
+            cleaned = value.replace(",", "").replace(data.currency, "").strip()
+            try:
+                parsed = float(cleaned)
+            except ValueError as exc:
+                raise ValueError(f"Invalid numeric value for {field}: {value}.") from exc
+            if integer:
+                if not parsed.is_integer():
+                    raise ValueError(f"{field} must be a whole number.")
+                return int(parsed)
+            return parsed
+
+        supplier = next(item for item in SUPPLIERS if item["id"] == data.supplier_id)
+        products = []
+        errors = []
+        for row_number, row in enumerate(reader, start=2):
+            if not any(str(value or "").strip() for value in row.values()):
+                continue
+            if len(products) + len(errors) >= 500:
+                raise ValueError("CSV import is limited to 500 non-empty rows.")
+            try:
+                title = cell(row, "title")
+                if not title:
+                    raise ValueError("Product title is empty.")
+                product_id = cell(row, "product_id") or f"{data.supplier_id}-{row_number}"
+                source_url = cell(row, "source_url")
+                if source_url:
+                    source_url = _validate_public_http_url(source_url)
+                products.append({
+                    "product_id": product_id,
+                    "title": title,
+                    "sku": cell(row, "sku"),
+                    "brand": cell(row, "brand"),
+                    "model": cell(row, "model"),
+                    "size": cell(row, "size"),
+                    "color": cell(row, "color"),
+                    "supplier_id": data.supplier_id,
+                    "supplier_name": supplier["name"],
+                    "country": data.country,
+                    "currency": data.currency,
+                    "product_cost": number(row, "product_cost", required=True),
+                    "shipping_cost": number(row, "shipping_cost") or 0,
+                    "handling_cost": number(row, "handling_cost") or 0,
+                    "delivery_days": number(row, "delivery_days", integer=True),
+                    "stock_quantity": number(row, "stock_quantity", integer=True),
+                    "moq": number(row, "moq", integer=True),
+                    "source_url": source_url,
+                    "captured_at": cell(row, "captured_at"),
+                    "evidence_status": "user_supplied_or_imported_not_live_verified",
+                })
+            except (ValueError, TypeError) as exc:
+                errors.append({"row": row_number, "error": str(exc)})
+        if not products and errors:
+            raise ValueError(f"No valid product rows found. First row error: {errors[0]['error']}")
+        return {
+            "supplier_id": data.supplier_id,
+            "supplier_name": supplier["name"],
+            "country": data.country,
+            "currency": data.currency,
+            "imported_count": len(products),
+            "rejected_count": len(errors),
+            "products": products,
+            "row_errors": errors,
+            "connection_verified": False,
+            "live_catalog_fetch_enabled": False,
+            "data_note": "CSV rows were supplied by the user. This endpoint validates and previews the import; it does not fetch a supplier feed, verify stock, or persist catalog records.",
+        }
+    except csv.Error as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid CSV: {exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/supplier-offers/compare")
