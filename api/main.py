@@ -652,7 +652,10 @@ def import_supplier_catalog(data: SupplierCatalogImportRequest):
             "source_url": ("source_url", "product_url", "url", "link"),
             "captured_at": ("captured_at", "updated_at", "snapshot_at"),
         }
-        normalized_headers = {str(name).strip().lower(): name for name in reader.fieldnames if name}
+        normalized_headers = {
+            re.sub(r"[\\s\\-]+", "_", str(name).strip().lower()): name
+            for name in reader.fieldnames if name
+        }
         selected = {
             target: next((normalized_headers[name] for name in names if name in normalized_headers), None)
             for target, names in aliases.items()
