@@ -242,7 +242,7 @@ def test_google_trends_rss_parser_preserves_source_metrics_and_news():
 def test_product_trend_match_uses_literal_token_overlap_and_excludes_weak_matches():
     trends = [
         {"title": "portable blender deals", "approx_traffic": "2000+", "started": "2026-11-10T08:00:00+00:00", "news": []},
-        {"title": "portable electronics news", "approx_traffic": "1000+", "started": None, "news": []},
+        {"title": "electronics news", "approx_traffic": "1000+", "started": None, "news": []},
         {"title": "football final", "approx_traffic": "5000+", "started": None, "news": []},
     ]
     result = api_module.match_product_to_trends("Portable Blender", trends)
