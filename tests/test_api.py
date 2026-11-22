@@ -307,7 +307,7 @@ def test_product_trend_match_includes_freshness_and_prefers_fresher_matches():
         {"title": "portable blender deals", "started": "2026-11-10T08:00:00+00:00"},
         {"title": "portable blender offers", "started": "2026-11-22T08:00:00+00:00"},
     ]
-    result = api_module.match_product_to_trends("Portable Blender", trends)
+    result = api_module.match_product_to_trends("Portable Blender", trends, now=api_module.datetime(2026, 11, 22, 12, 0, tzinfo=api_module.timezone.utc))
     assert result[0]["trend_freshness"] == "fresh"
     assert result[1]["trend_freshness"] == "stale"
     assert result[0]["trend_age_hours"] is not None
