@@ -76,7 +76,7 @@ def test_supplier_catalog_preview_survives_browser_storage_failure():
     end = html.index("\nconst supplierCatalogEscape", start)
     helper = html[start:end]
     handler_start = html.index('$("runSupplierCatalogImport").addEventListener')
-    handler_end = html.index('renderSavedSupplierCatalog();', handler_start)
+    handler_end = html.index("\n});\nrenderSavedSupplierCatalog();", handler_start)
     handler = html[handler_start:handler_end]
 
     assert 'const saved=await saveSupplierCatalogSafely(rows,savedAt)' in handler
