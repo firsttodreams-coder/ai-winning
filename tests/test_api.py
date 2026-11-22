@@ -1114,3 +1114,49 @@ def test_unified_profitability_calculates_each_marketplace_profit_for_each_suppl
     assert by_market["Daraz"]["estimated_profit_at_lowest_price"] == 170
     assert by_market["Noon"]["estimated_profit_at_average_price"] == 1250
     assert by_market["Noon"]["estimated_margin_at_average_price_percent"] == 41.67
+
+
+def test_supplier_catalog_csv_import_normalizes_rows_and_keeps_imported_evidence_unverified():
+    response = client.post("/api/v1/supplier-catalog/import", json={
+        "supplier_id": "zambeel",
+        "country": "PK",
+        "currency": "PKR",
+        "csv_content": "SKU,Product Name,Price,Delivery Cost,Stock,MOQ,Product URL\\nBL-01,Portable Blender,1250,150,24,2,https://products.myzambeel.com/products/blender\\nBL-02,Mini Blender,900,100,,,,",
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["imported_count"] == 2
+    assert result["rejected_count"] == 0
+    first = result["products"][0]
+    assert first["product_id"] == "BL-01"
+    assert first["supplier_name"] == "Zambeel"
+    assert first["product_cost"] == 1250
+    assert first["shipping_cost"] == 150
+    assert first["stock_quantity"] == 24
+    assert first["evidence_status"] == "user_supplied_or_imported_not_live_verified"
+    assert result["connection_verified"] is False
+
+
+def test_supplier_catalog_csv_import_rejects_wrong_market_currency_and_unsafe_urls():
+    base = {
+        "supplier_id": "zambeel",
+        "country": "PK",
+        "currency": "PKR",
+        "csv_content": "title,price,product_url\\nBlender,100,https://example.com/item",
+    }
+    wrong_market = {**base, "country": "US", "currency": "USD"}
+    assert client.post("/api/v1/supplier-catalog/import", json=wrong_market).status_code == 422
+    unsafe = {**base, "csv_content": "title,price,product_url\\nBlender,100,file:///etc/passwd"}
+    rejected = client.post("/api/v1/supplier-catalog/import", json=unsafe)
+    assert rejected.status_code == 200
+    assert rejected.json()["imported_count"] == 0
+    assert rejected.json()["rejected_count"] == 1
+
+
+def test_supplier_catalog_csv_import_requires_product_title_and_price_columns():
+    response = client.post("/api/v1/supplier-catalog/import", json={
+        "supplier_id": "zambeel", "country": "PK", "currency": "PKR",
+        "csv_content": "sku,stock\\nA1,10",
+    })
+    assert response.status_code == 422
+
