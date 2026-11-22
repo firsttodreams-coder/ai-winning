@@ -438,13 +438,14 @@ async function matchProductTrends(){
  const name=$("productTrendQuery").value.trim();
  const countryCode={"Pakistan":"PK","United States":"US","United Kingdom":"GB","United Arab Emirates":"AE","Saudi Arabia":"SA","Oman":"OM","Qatar":"QA","Kuwait":"KW","Bahrain":"BH","India":"IN","Canada":"CA","Australia":"AU","Germany":"DE"}[$("country").value];
  if(name.length<2){status.textContent=t.productTrendEmpty;box.innerHTML="";return;}
- button.disabled=true;status.textContent=t.productTrendLoading;box.innerHTML="";
+ button.disabled=true;status.textContent=t.productTrendLoading;
+ const exploreLink='<p class="meta"><a href="'+googleTrendsProductUrl(name,countryCode)+'" target="_blank" rel="noopener noreferrer">'+(language==="ur"?"Google Trends par is product ki search history dekhein":"Open this product in Google Trends")+'</a></p>';
+ box.innerHTML=exploreLink;
  try{
   const params=new URLSearchParams({country:countryCode,product_name:name});
   const response=await fetch("https://ai-winning.firsttodreams.workers.dev/api/v1/trends/match?"+params.toString());
   if(!response.ok)throw new Error("Trend match request failed: "+response.status);
   const result=await response.json();
-  const exploreLink='<p class="meta"><a href="'+googleTrendsProductUrl(name,countryCode)+'" target="_blank" rel="noopener noreferrer">'+(language==="ur"?"Google Trends par is product ki search history dekhein":"Open this product in Google Trends")+'</a></p>';
   if(!result.matches.length){status.textContent=t.productTrendEmpty;box.innerHTML=exploreLink;return;}
   status.textContent=result.match_count+" · "+t.productTrendNote;
   box.innerHTML=exploreLink+result.matches.map(item=>'<article class="card"><h4>'+escapeResearchText(item.title)+'</h4><div class="meta">'+escapeResearchText(t.productTrendMatch)+': '+item.match_score+'% · '+escapeResearchText(item.relevance)+' · '+escapeResearchText(item.approx_traffic||"")+'</div><div class="meta">'+escapeResearchText((item.matched_terms||[]).join(", "))+'</div><div class="meta">'+escapeResearchText(trendFreshnessText(item,t))+'</div>'+(item.started?'<div class="meta">'+escapeResearchText(item.started)+'</div>':"")+'</article>').join("");
