@@ -7,6 +7,7 @@ def test_cloudflare_worker_uses_the_same_api_as_the_tested_application():
     worker_api = (root / "src" / "api" / "main.py").read_text(encoding="utf-8")
 
     assert worker_api == application_api
+    assert (root / "src" / "api" / "connectors.py").read_text(encoding="utf-8") == (root / "api" / "connectors.py").read_text(encoding="utf-8")
     assert '@app.get("/api/v1/trends")' in worker_api
     assert '@app.get("/api/v1/trends/match")' in worker_api
     assert '@app.get("/api/v1/suppliers")' in worker_api
