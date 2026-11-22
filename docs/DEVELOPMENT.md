@@ -97,6 +97,11 @@ MOQ investment is calculated as landed unit cost multiplied by MOQ. Profit estim
 
 GET `/api/v1/supplier-connectors` reports integration readiness for Zambeel, Tejaraa and Wave Byte. It returns provider markets, integration path, required environment-variable names, missing variable names, and manual fallback options. It never returns secret values and never claims a live connection merely because credentials are present.
 
+Supplier access research checked against official provider pages on 22 November 2026:
+- Tejaraa's official Help Center confirms live and sandbox Partner API keys can be created in My Stores > Custom API; API access depends on membership, and product spreadsheet exports are plan-limited. The exact authenticated endpoint schema still needs to be obtained from the seller portal before implementation: https://tejaraa.com/help/partner-api.
+- My Zambeel exposes a public product catalogue, including a Pakistan catalogue, but no public partner API specification was located in this review. Do not reverse-engineer private endpoints; request approved API/feed access: https://products.myzambeel.com/collections/products-for-pakistan.
+- Wave Byte's official Shopify listing advertises a 7-day trial followed by USD 5/month through Shopify billing. Its public product materials describe catalogue/inventory sync through the Shopify app, not a general-purpose public API. Dropshipping is advertised for UAE, Saudi Arabia and Oman; other GCC markets are described for 3PL/fulfilment. Keep it optional and do not make it a dependency of the free core: https://apps.shopify.com/wavebyte and https://wavebyteglobal.com/services.
+
 Current readiness rules:
 - Zambeel: expects deployment secrets `ZAMBEEL_API_BASE_URL` and `ZAMBEEL_API_TOKEN`; approved API/feed access and its schema still need to be obtained from the provider.
 - Tejaraa: expects `TEJARAA_API_BASE_URL` and `TEJARAA_API_KEY`; the provider documents live/sandbox Partner API keys and plan-limited catalog exports, but this repository does not yet implement a provider-specific request until the official endpoint/auth schema and credentials are confirmed.
