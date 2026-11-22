@@ -15,12 +15,15 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
+from api.connectors import router as supplier_connectors_router
 
 app = FastAPI(
     title="AI Winning Product Finder API",
     description="Open API for transparent product scoring and public market signals.",
     version="0.2.0",
 )
+
+app.include_router(supplier_connectors_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -137,6 +140,33 @@ def _evidence_metadata(source_url: str | None, captured_at: str | None) -> dict:
     else:
         metadata["freshness_status"] = "stale"
     return metadata
+
+
+class OpportunityEvidence(BaseModel):
+    evidence_type: str = Field(min_length=2, max_length=40)
+    source_name: str = Field(min_length=2, max_length=100)
+    source_url: str = Field(min_length=8, max_length=2048)
+    captured_at: str | None = Field(default=None, max_length=64)
+
+
+class ProductOpportunityCandidate(BaseModel):
+    candidate_id: str = Field(min_length=1, max_length=80)
+    product_name: str = Field(min_length=2, max_length=160)
+    country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
+    city: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=100)
+    currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    signals: OpportunitySignals
+    evidence: list[OpportunityEvidence] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_market_currency(self):
+        _validate_market_currency(self.country, self.currency)
+        return self
+
+
+class ProductDiscoveryRequest(BaseModel):
+    candidates: list[ProductOpportunityCandidate] = Field(min_length=1, max_length=50)
 
 
 class SupplierOffer(BaseModel):
@@ -759,6 +789,68 @@ def product_economics(data: ProductEconomics):
         "roi_percent": round(roi, 2) if roi is not None else None,
         "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
         "note": "Estimate based only on costs and price supplied by the user; taxes and other costs may apply.",
+    }
+
+
+@app.post("/api/v1/product-discovery/rank")
+def rank_product_opportunities(data: ProductDiscoveryRequest):
+    """Rank submitted product candidates without inventing demand or sales metrics."""
+    ranked = []
+    seen_ids = set()
+    for candidate in data.candidates:
+        if candidate.candidate_id in seen_ids:
+            raise HTTPException(status_code=422, detail="candidate_id values must be unique.")
+        seen_ids.add(candidate.candidate_id)
+        signal_values = candidate.signals.model_dump()
+        score = round(sum(signal_values[key] * weight for key, weight in WEIGHTS.items()) * 10)
+        evidence_rows = []
+        fresh_count = 0
+        usable_source_count = 0
+        for evidence in candidate.evidence:
+            metadata = _evidence_metadata(evidence.source_url, evidence.captured_at)
+            if metadata["source_domain"]:
+                usable_source_count += 1
+            if metadata["freshness_status"] == "fresh":
+                fresh_count += 1
+            evidence_rows.append({
+                **evidence.model_dump(),
+                "evidence_metadata": metadata,
+                "verification_status": "submitted_source_not_independently_verified",
+            })
+
+        # Confidence describes evidence coverage/freshness, never likelihood of sales.
+        if usable_source_count >= 3 and fresh_count >= 2:
+            confidence = "higher_evidence_coverage"
+        elif usable_source_count >= 1:
+            confidence = "some_evidence"
+        else:
+            confidence = "insufficient_evidence"
+        ranked.append({
+            "candidate_id": candidate.candidate_id,
+            "product_name": candidate.product_name,
+            "country": candidate.country,
+            "city": candidate.city,
+            "category": candidate.category,
+            "currency": candidate.currency,
+            "opportunity_score": score,
+            "score_rating": "strong" if score >= 75 else "moderate" if score >= 50 else "needs-validation",
+            "signals": signal_values,
+            "weights": WEIGHTS,
+            "evidence_count": len(evidence_rows),
+            "usable_source_count": usable_source_count,
+            "fresh_evidence_count": fresh_count,
+            "evidence_confidence": confidence,
+            "evidence": evidence_rows,
+            "sales_forecast": None,
+            "verified_sales_data": False,
+            "explanation": "Score is a weighted estimate from submitted ratings. Evidence confidence reflects source-link coverage and timestamp freshness only; it does not verify demand, sales, or product identity.",
+        })
+    ranked.sort(key=lambda item: (item["opportunity_score"], item["usable_source_count"], item["fresh_evidence_count"]), reverse=True)
+    return {
+        "count": len(ranked),
+        "ranking_method": "transparent_weighted_user_signals_with_evidence_coverage",
+        "ranked_candidates": ranked,
+        "data_note": "This endpoint ranks only candidates and evidence supplied in the request. It does not fetch product sales, marketplace prices, competitor counts, or supplier stock. Scores are estimates, not guaranteed winning-product predictions; source URLs and timestamps are not independently verified.",
     }
 
 
