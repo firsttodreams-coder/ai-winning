@@ -424,7 +424,7 @@ async function matchProductTrends(){
  button.disabled=true;status.textContent=t.productTrendLoading;box.innerHTML="";
  try{
   const params=new URLSearchParams({country:countryCode,product_name:name});
-  const response=await fetch("https://ai-winning.firstdreams.workers.dev/api/v1/trends/match?"+params.toString());
+  const response=await fetch("https://ai-winning.firsttodreams.workers.dev/api/v1/trends/match?"+params.toString());
   if(!response.ok)throw new Error("Trend match request failed: "+response.status);
   const result=await response.json();
   if(!result.matches.length){status.textContent=t.productTrendEmpty;return;}
