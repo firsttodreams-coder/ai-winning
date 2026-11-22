@@ -19,7 +19,7 @@ CONNECTOR_DEFINITIONS = (
         "countries": ["PK", "AE", "SA"],
         "integration_type": "authorized_api_or_catalog_feed",
         "required_environment": ["ZAMBEEL_API_BASE_URL", "ZAMBEEL_API_TOKEN"],
-        "public_catalog": "https://products.myzameel.com/",
+        "public_catalog": "https://products.myzambeel.com/",
         "manual_fallback": "Product URL review or supplier CSV import",
         "access_note": (
             "Public country catalogues are visible, but this project has not "
