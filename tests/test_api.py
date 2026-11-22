@@ -1137,6 +1137,27 @@ def test_supplier_catalog_csv_import_normalizes_rows_and_keeps_imported_evidence
     assert result["connection_verified"] is False
 
 
+def test_supplier_catalog_csv_import_rejects_duplicate_product_ids_without_overwriting_first():
+    response = client.post("/api/v1/supplier-catalog/import", json={
+        "supplier_id": "zambeel",
+        "country": "PK",
+        "currency": "PKR",
+        "csv_content": (
+            "product_id,title,price\\n"
+            "BL-01,Portable Blender,1250\\n"
+            "BL-01,Mini Blender,900"
+        ),
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["imported_count"] == 1
+    assert result["rejected_count"] == 1
+    assert result["products"][0]["title"] == "Portable Blender"
+    assert result["row_errors"] == [
+        {"row": 3, "error": "Duplicate product_id in this CSV."}
+    ]
+
+
 def test_supplier_catalog_csv_import_rejects_wrong_market_currency_and_unsafe_urls():
     base = {
         "supplier_id": "zambeel",
