@@ -623,7 +623,7 @@ $("supplierQuoteCsv").addEventListener("change",async event=>{
  const input=event.target,file=input.files&&input.files[0],status=$("supplierQuoteStatus");if(!file)return;
  try{
   if(file.size>1024*1024)throw new Error("CSV file exceeds the 1 MB limit");
-  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\\ufeff/,""));
+  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no quote rows");
   const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["supplier_id","supplier_name","product_cost"],allowed=["supplier_id","supplier_name","product_cost","shipping_cost","handling_cost","delivery_days","stock_quantity","moq","source_url","captured_at"];
   if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
