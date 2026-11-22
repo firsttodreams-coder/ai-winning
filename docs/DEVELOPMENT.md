@@ -127,3 +127,10 @@ Example request:
   }]
 }
 ```
+
+
+## Product discovery ranking frontend (22 November 2026)
+
+The bilingual browser UI now includes a Product Opportunity Ranking panel connected to the Cloudflare API at `POST /api/v1/product-discovery/rank`. The user selects a country/city in the existing market filters, enters a product name, rates five signals from 1–10, and may attach one source URL and source name. The UI displays the weighted score, evidence-coverage label and evidence count.
+
+The panel does not invent products, sales counts, forecasts or marketplace data. A submitted URL is user-provided and not independently verified. The score is an estimate based on the ratings entered by the user. The browser code is included in the existing JavaScript syntax-check workflow; the worker API synchronization test explicitly checks the discovery route.
