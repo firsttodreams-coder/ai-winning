@@ -599,9 +599,10 @@ $("marketListingCsv").addEventListener("change",async event=>{
  try{
   const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no listing rows");
-  const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["marketplace","price","shipping_cost","listing_url","observed_sold_count"];
+  const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["marketplace","price"],allowed=["marketplace","price","shipping_cost","listing_url","observed_sold_count","captured_at"];
   if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
-  if(required.some(key=>!headers.includes(key)))throw new Error("CSV headers do not match template");
+  if(required.some(key=>!headers.includes(key)))throw new Error("CSV must include marketplace and price columns");
+  if(headers.some(key=>!allowed.includes(key)))throw new Error("CSV contains unsupported columns: "+headers.filter(key=>!allowed.includes(key)).join(", "));
   const records=rows.slice(1);
   if(records.length>50){status.textContent=translations[language].marketCsvTooMany;return;}
   if(!records.length)throw new Error("CSV has no listing rows");
@@ -609,8 +610,8 @@ $("marketListingCsv").addEventListener("change",async event=>{
    const recordNumber=index+2;
    if(record.length!==headers.length)throw new Error("CSV record "+recordNumber+": column count does not match header");
    const values=Object.fromEntries(headers.map((key,column)=>[key,(record[column]||"").trim()]));
-   const marketplace=values.marketplace,price=Number(values.price),shipping=values.shipping_cost===""?0:Number(values.shipping_cost),sold=values.observed_sold_count===""?null:Number(values.observed_sold_count);
-   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||(values.listing_url&&!/^https?:\/\//i.test(values.listing_url))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("CSV record "+recordNumber+": invalid marketplace listing values");
+   const marketplace=values.marketplace,price=Number(values.price),shipping=(values.shipping_cost||"")===""?0:Number(values.shipping_cost),sold=(values.observed_sold_count||"")===""?null:Number(values.observed_sold_count);
+   if(!marketplace||marketplace.length>80||!Number.isFinite(price)||price<=0||!Number.isFinite(shipping)||shipping<0||(sold!==null&&(!Number.isInteger(sold)||sold<0))||((values.listing_url||"")&&!/^https?:\/\//i.test(values.listing_url))||((values.captured_at||"")&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("CSV record "+recordNumber+": invalid marketplace listing values");
    return {marketplace,price,shipping,sold,listingUrl:values.listing_url||"",capturedAt:values.captured_at||""};
   });
   ensureNumberedSlots("marketplace",parsed.length);
