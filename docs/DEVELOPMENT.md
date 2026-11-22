@@ -104,6 +104,10 @@ Tests in `tests/test_supplier_connectors.py` cover missing/configured readiness,
 
 
 
+## Batch product trend check API (22 November 2026)
+
+POST `/api/v1/product-discovery/trend-check` accepts one supported country code and 1–50 unique product names. It fetches the public Google Trends RSS feed once, then checks each product name against the same country feed using Unicode token overlap (including Urdu and mixed Urdu-English names). Each product receives its own match list and an explicit `verified_product_demand: false` marker. This reduces repeated upstream requests when screening a shortlist, but does not create product-specific search volume, sales evidence or forecasts. No match does not mean no demand.
+
 ## Product discovery ranking API (22 November 2026)
 
 POST `/api/v1/product-discovery/rank` ranks 1–50 candidate products for a supported country using the existing transparent signal weights (demand 30%, competition advantage 20%, margin 25%, shipping 10%, trend 15%). Each candidate includes a unique ID, product name, country, matching currency, optional city/category, five 1–10 signal ratings, and optional evidence entries with type, source name, URL and capture timestamp.
