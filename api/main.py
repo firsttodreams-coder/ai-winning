@@ -345,6 +345,61 @@ def scoring_model():
     }
 
 
+
+def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]:
+    """Find literal token overlap with current trend titles; never infer sales demand."""
+    product_terms = set(re.findall(r"[a-z0-9]+", product_name.casefold()))
+    if not product_terms:
+        return []
+    matches = []
+    for trend in trends:
+        title_terms = set(re.findall(r"[a-z0-9]+", trend.get("title", "").casefold()))
+        matched_terms = sorted(product_terms & title_terms)
+        coverage = len(matched_terms) / len(product_terms)
+        if coverage >= 0.5:
+            matches.append({
+                **trend,
+                "match_score": round(coverage * 100, 1),
+                "matched_terms": matched_terms,
+                "relevance": "strong" if coverage == 1 else "partial",
+            })
+    return sorted(matches, key=lambda item: (item["match_score"], item.get("started") or ""), reverse=True)
+
+
+@app.get("/api/v1/trends/match")
+async def product_trend_matches(
+    country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$"),
+    product_name: str = Query(..., min_length=2, max_length=120),
+):
+    """Match a product name against literal terms in Google's current country trend titles."""
+    feed_url = f"https://trends.google.com/trending/rss?geo={country}"
+    try:
+        async with httpx.AsyncClient(
+            timeout=12.0,
+            follow_redirects=True,
+            headers={"User-Agent": "AI-Winning-Product-Finder/0.2 (+public-trends-reader)"},
+        ) as client:
+            response = await client.get(feed_url)
+            response.raise_for_status()
+        trends = parse_google_trends_rss(response.text)
+    except (httpx.HTTPError, ET.ParseError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Public Google Trends feed is temporarily unavailable. Please try again later.",
+        ) from exc
+    matches = match_product_to_trends(product_name, trends)
+    return {
+        "country": country,
+        "product_name": product_name,
+        "source": feed_url,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "match_count": len(matches),
+        "matches": matches,
+        "matching_method": "Literal English token overlap against current trend titles; at least 50% of product-name tokens must match.",
+        "data_note": "A name match is only a discovery hint. It does not prove product-specific search volume, purchase intent, marketplace sales or future demand. No match does not mean no demand.",
+    }
+
+
 @app.get("/api/v1/trends")
 async def country_trends(country: str = Query(..., pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")):
     """Return Google's public top 10 Trending Now RSS entries for a supported country."""
