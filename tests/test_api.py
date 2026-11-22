@@ -840,7 +840,7 @@ def test_batch_product_trend_check_fetches_one_country_feed_for_multiple_product
     assert result["results"][1]["match_count"] == 1
     assert result["results"][2]["match_count"] == 0
     assert all(item["verified_product_demand"] is False for item in result["results"])
-    assert "does not prove" in result["data_note"]
+    assert "do not prove" in result["data_note"]
 
 
 def test_batch_product_trend_check_supports_urdu_product_names(monkeypatch):
