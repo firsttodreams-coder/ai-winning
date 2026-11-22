@@ -706,9 +706,14 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         })
 
     # A supplier with a known stock shortfall must not outrank one able to meet MOQ.
+    stock_priority = {
+        "available": 2,
+        "unknown": 1,
+        "insufficient_for_moq": 0,
+    }
     comparisons.sort(
         key=lambda row: (
-            row["stock_status"] != "insufficient_for_moq",
+            stock_priority[row["stock_status"]],
             row["planned_profit_per_order"],
         ),
         reverse=True,
