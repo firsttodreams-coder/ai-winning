@@ -653,7 +653,7 @@ def import_supplier_catalog(data: SupplierCatalogImportRequest):
             "captured_at": ("captured_at", "updated_at", "snapshot_at"),
         }
         normalized_headers = {
-            re.sub(r"[\\s\\-]+", "_", str(name).strip().lower()): name
+            re.sub(r"[\s-]+", "_", str(name).strip().lower()): name
             for name in reader.fieldnames if name
         }
         selected = {
