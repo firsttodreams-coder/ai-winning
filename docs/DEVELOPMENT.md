@@ -68,6 +68,10 @@ The 13 supported Trends markets are PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, 
 6. Complete end-to-end deployment checks, mobile/desktop user testing, secret-handling review and stale-feed/error-state tests before production claims.
 
 
+## Supplier catalogue quote handoff (22 November 2026)
+
+The supplier-catalog CSV template now accepts optional quote evidence columns in addition to product identity fields: `supplier_id`, `supplier_name`, `product_cost`, `shipping_cost`, `handling_cost`, `delivery_days`, `stock_quantity`, `moq`, `source_url`, and `captured_at`. Product identity attributes (`brand`, `model`, `size`, `color`, `pack_quantity`, `condition`) are also supported for conservative matching. After a catalogue match is selected, available quote fields for that supplier product are copied into the first supplier-offer form slot for review; the product title is copied into the combined profitability form and the interface scrolls to the quote inputs. Missing fields remain blank/default and must be completed or verified by the user. Catalogue rows remain user-imported evidence; this does not create a supplier API connection or verify quote freshness.
+
 ## Supplier-to-marketplace catalogue matching
 
 POST `/api/v1/catalog/match` accepts imported supplier and marketplace product records (up to 50 each). The matcher:
