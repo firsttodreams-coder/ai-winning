@@ -658,3 +658,56 @@ def test_unified_profitability_rejects_invalid_catalog_match_similarity():
     }
     response = client.post("/api/v1/product-profitability/compare", json=payload)
     assert response.status_code == 422
+
+
+
+def test_product_discovery_ranks_candidates_and_reports_evidence_coverage():
+    response = client.post("/api/v1/product-discovery/rank", json={
+        "candidates": [
+            {
+                "candidate_id": "lamp-1",
+                "product_name": "Rechargeable LED Lamp",
+                "country": "PK",
+                "city": "Lahore",
+                "currency": "PKR",
+                "signals": {"demand": 8, "competition": 6, "margin": 7, "shipping": 8, "trend": 7},
+                "evidence": [
+                    {"evidence_type": "marketplace_listing", "source_name": "Daraz", "source_url": "https://www.daraz.pk/item/1", "captured_at": "2026-11-22T08:00:00Z"},
+                    {"evidence_type": "supplier_quote", "source_name": "Supplier", "source_url": "https://supplier.example/item/1", "captured_at": "2026-11-22T08:30:00Z"},
+                    {"evidence_type": "search_interest", "source_name": "Trends", "source_url": "https://trends.google.com/trends/explore"}
+                ]
+            },
+            {
+                "candidate_id": "mug-1",
+                "product_name": "Ceramic Mug",
+                "country": "PK",
+                "currency": "PKR",
+                "signals": {"demand": 3, "competition": 4, "margin": 5, "shipping": 6, "trend": 2}
+            }
+        ]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["count"] == 2
+    assert result["ranked_candidates"][0]["candidate_id"] == "lamp-1"
+    assert result["ranked_candidates"][0]["evidence_confidence"] == "higher_evidence_coverage"
+    assert result["ranked_candidates"][0]["verified_sales_data"] is False
+    assert result["ranked_candidates"][0]["sales_forecast"] is None
+    assert result["ranked_candidates"][1]["evidence_confidence"] == "insufficient_evidence"
+
+
+def test_product_discovery_rejects_currency_mismatch_and_duplicate_ids():
+    mismatch = client.post("/api/v1/product-discovery/rank", json={
+        "candidates": [{
+            "candidate_id": "x", "product_name": "Test Product", "country": "PK", "currency": "AED",
+            "signals": {"demand": 5, "competition": 5, "margin": 5, "shipping": 5, "trend": 5}
+        }]
+    })
+    duplicate = client.post("/api/v1/product-discovery/rank", json={
+        "candidates": [
+            {"candidate_id": "x", "product_name": "Test Product A", "country": "PK", "currency": "PKR", "signals": {"demand": 5, "competition": 5, "margin": 5, "shipping": 5, "trend": 5}},
+            {"candidate_id": "x", "product_name": "Test Product B", "country": "PK", "currency": "PKR", "signals": {"demand": 6, "competition": 5, "margin": 5, "shipping": 5, "trend": 5}}
+        ]
+    })
+    assert mismatch.status_code == 422
+    assert duplicate.status_code == 422
