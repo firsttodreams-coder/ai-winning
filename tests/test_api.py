@@ -28,6 +28,54 @@ def test_unified_profitability_requires_product_identity_confirmation():
     assert identity["automated_catalog_match_performed"] is False
     assert identity["review_required"] is True
 
+def test_unified_profitability_ranks_stock_shortfalls_below_fulfillable_suppliers():
+    response = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "USB Blender",
+        "country": "PK",
+        "currency": "PKR",
+        "planned_selling_price": 5000,
+        "product_identity_confirmed": True,
+        "offers": [
+            {
+                "supplier_id": "supplier-low-stock",
+                "supplier_name": "Low stock supplier",
+                "product_cost": 1000,
+                "moq": 10,
+                "stock_quantity": 4,
+            },
+            {
+                "supplier_id": "supplier-ready",
+                "supplier_name": "Ready supplier",
+                "product_cost": 1500,
+                "moq": 5,
+                "stock_quantity": 20,
+            },
+            {
+                "supplier_id": "supplier-unknown",
+                "supplier_name": "Unknown stock supplier",
+                "product_cost": 900,
+            },
+        ],
+        "listings": [{"marketplace": "Daraz", "price": 4500}],
+    })
+    assert response.status_code == 200
+    result = response.json()
+    ranked = result["supplier_comparisons"]
+    assert ranked[0]["supplier_id"] == "supplier-ready"
+    assert ranked[0]["stock_status"] == "available"
+    assert ranked[0]["moq_fulfillable"] is True
+    assert ranked[0]["supplier_rank"] == 1
+    low_stock = next(row for row in ranked if row["supplier_id"] == "supplier-low-stock")
+    assert low_stock["stock_status"] == "insufficient_for_moq"
+    assert low_stock["moq_fulfillable"] is False
+    assert low_stock["supplier_rank"] == 3
+    unknown = next(row for row in ranked if row["supplier_id"] == "supplier-unknown")
+    assert unknown["stock_status"] == "unknown"
+    assert unknown["moq_fulfillable"] is None
+    assert result["best_supplier_by_planned_profit"] == "supplier-ready"
+    assert "Unknown stock is not treated as verified availability" in result["supplier_ranking_note"]
+
+
 def test_catalog_match_suggests_similar_titles_and_marks_review_required():
     response = client.post("/api/v1/catalog/match", json={
         "supplier_products": [
