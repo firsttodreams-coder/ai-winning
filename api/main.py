@@ -774,6 +774,7 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
             "planned_selling_price": round(data.planned_selling_price, 2),
             "planned_profit_per_order": round(planned_profit, 2),
             "planned_profit_margin_percent": round(planned_profit / data.planned_selling_price * 100, 2),
+            "planned_roi_percent": round(planned_profit / landed * 100, 2) if landed > 0 else None,
             "market_average_profit_per_order": round(market_profit, 2),
             "market_average_profit_margin_percent": round(market_profit / market_average * 100, 2),
             "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
