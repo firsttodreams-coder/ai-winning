@@ -346,14 +346,19 @@ def scoring_model():
 
 
 
+def _trend_tokens(value: str) -> set[str]:
+    """Tokenize Unicode letters and numbers, including Urdu and Arabic-script text."""
+    return set(re.findall(r"[^\\W_]+", value.casefold(), flags=re.UNICODE))
+
+
 def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]:
-    """Find literal token overlap with current trend titles; never infer sales demand."""
-    product_terms = set(re.findall(r"[a-z0-9]+", product_name.casefold()))
+    """Find literal Unicode token overlap; never infer sales demand."""
+    product_terms = _trend_tokens(product_name)
     if not product_terms:
         return []
     matches = []
     for trend in trends:
-        title_terms = set(re.findall(r"[a-z0-9]+", trend.get("title", "").casefold()))
+        title_terms = _trend_tokens(trend.get("title", ""))
         matched_terms = sorted(product_terms & title_terms)
         coverage = len(matched_terms) / len(product_terms)
         if coverage >= 0.5:
