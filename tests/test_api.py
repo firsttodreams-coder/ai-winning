@@ -1121,7 +1121,7 @@ def test_supplier_catalog_csv_import_normalizes_rows_and_keeps_imported_evidence
         "supplier_id": "zambeel",
         "country": "PK",
         "currency": "PKR",
-        "csv_content": "SKU,Product Name,Price,Delivery Cost,Stock,MOQ,Product URL\\nBL-01,Portable Blender,1250,150,24,2,https://products.myzambeel.com/products/blender\\nBL-02,Mini Blender,900,100,,,,",
+        "csv_content": "SKU,Product Name,Price,Delivery Cost,Stock,MOQ,Product URL\nBL-01,Portable Blender,1250,150,24,2,https://products.myzambeel.com/products/blender\nBL-02,Mini Blender,900,100,,,,",
     })
     assert response.status_code == 200
     result = response.json()
@@ -1142,11 +1142,11 @@ def test_supplier_catalog_csv_import_rejects_wrong_market_currency_and_unsafe_ur
         "supplier_id": "zambeel",
         "country": "PK",
         "currency": "PKR",
-        "csv_content": "title,price,product_url\\nBlender,100,https://example.com/item",
+        "csv_content": "title,price,product_url\nBlender,100,https://example.com/item",
     }
     wrong_market = {**base, "country": "US", "currency": "USD"}
     assert client.post("/api/v1/supplier-catalog/import", json=wrong_market).status_code == 422
-    unsafe = {**base, "csv_content": "title,price,product_url\\nSafe Blender,100,https://example.com/safe\\nUnsafe Blender,100,file:///etc/passwd"}
+    unsafe = {**base, "csv_content": "title,price,product_url\nSafe Blender,100,https://example.com/safe\nUnsafe Blender,100,file:///etc/passwd"}
     rejected = client.post("/api/v1/supplier-catalog/import", json=unsafe)
     assert rejected.status_code == 200
     assert rejected.json()["imported_count"] == 1
@@ -1156,7 +1156,7 @@ def test_supplier_catalog_csv_import_rejects_wrong_market_currency_and_unsafe_ur
 def test_supplier_catalog_csv_import_requires_product_title_and_price_columns():
     response = client.post("/api/v1/supplier-catalog/import", json={
         "supplier_id": "zambeel", "country": "PK", "currency": "PKR",
-        "csv_content": "sku,stock\\nA1,10",
+        "csv_content": "sku,stock\nA1,10",
     })
     assert response.status_code == 422
 
