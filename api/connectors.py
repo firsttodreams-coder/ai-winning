@@ -21,10 +21,7 @@ CONNECTOR_DEFINITIONS = (
         "required_environment": ["ZAMBEEL_API_BASE_URL", "ZAMBEEL_API_TOKEN"],
         "public_catalog": "https://products.myzambeel.com/",
         "manual_fallback": "Product URL review or supplier CSV import",
-        "access_note": (
-            "Public country catalogues are visible, but this project has not "
-            "verified an approved API/feed specification or credentials."
-        ),
+        "access_note": "Public country catalogues are visible, but this project has not verified an approved API/feed specification or credentials.",
     },
     {
         "id": "tejaraa",
@@ -34,11 +31,17 @@ CONNECTOR_DEFINITIONS = (
         "required_environment": ["TEJARAA_API_BASE_URL", "TEJARAA_API_KEY"],
         "public_catalog": "https://tejaraa.com/",
         "manual_fallback": "Seller-portal product-list spreadsheet export",
-        "access_note": (
-            "Tejaraa documents Partner API live/sandbox keys and plan-limited "
-            "catalog exports; endpoint schema and credentials must be obtained "
-            "from the seller portal before requests are implemented."
-        ),
+        "access_note": "Partner API live/sandbox keys and plan-limited catalog exports are advertised; endpoint schema and credentials must be obtained before requests are implemented.",
+    },
+    {
+        "id": "ksa-drop",
+        "name": "KSA Drop",
+        "countries": ["SA", "AE"],
+        "integration_type": "approved_partner_feed",
+        "required_environment": [],
+        "public_catalog": "https://ksadrop.com/",
+        "manual_fallback": "Seller portal export or supplier quote CSV",
+        "access_note": "Seller onboarding is advertised; no public API specification or project credentials have been verified.",
     },
     {
         "id": "wave-byte",
@@ -48,10 +51,47 @@ CONNECTOR_DEFINITIONS = (
         "required_environment": [],
         "public_catalog": "https://wavebyte.ae/",
         "manual_fallback": "Supplier quote CSV import",
-        "access_note": (
-            "Official Shopify app is optional and may require a paid plan; "
-            "no general-purpose API credentials are configured here."
-        ),
+        "access_note": "Official Shopify app is optional and may require a paid plan; no general-purpose API credentials are configured.",
+    },
+    {
+        "id": "atsum-ksa",
+        "name": "ATSUM KSA",
+        "countries": ["SA"],
+        "integration_type": "approved_partner_api",
+        "required_environment": [],
+        "public_catalog": "https://www.myatsum.com/en",
+        "manual_fallback": "Supplier quote CSV import",
+        "access_note": "Custom API and commerce-platform integrations are advertised; partner specification and credentials must be requested.",
+    },
+    {
+        "id": "hhc-dropshipping",
+        "name": "HHC Dropshipping",
+        "countries": ["PK"],
+        "integration_type": "approved_catalog_export",
+        "required_environment": [],
+        "public_catalog": "https://hhcdropshipping.com/",
+        "manual_fallback": "Supplier quote CSV import",
+        "access_note": "Pakistan supplier lead; dropshipping terms and an authorized catalog export route require confirmation.",
+    },
+    {
+        "id": "directstock",
+        "name": "DirectStock",
+        "countries": ["PK"],
+        "integration_type": "approved_catalog_export",
+        "required_environment": [],
+        "public_catalog": "https://directstock.com.pk/products",
+        "manual_fallback": "Product URL review or supplier quote CSV",
+        "access_note": "Public wholesale listings are available; item-level dropshipping eligibility and API access are not verified.",
+    },
+    {
+        "id": "souq-b2b",
+        "name": "SouqB2B UAE",
+        "countries": ["AE"],
+        "integration_type": "approved_catalog_export",
+        "required_environment": [],
+        "public_catalog": "https://souqb2b.ae/en",
+        "manual_fallback": "Supplier quote CSV import",
+        "access_note": "Public wholesale/RFQ storefront; single-order dropshipping and API access require supplier confirmation.",
     },
 )
 
