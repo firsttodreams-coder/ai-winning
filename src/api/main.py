@@ -690,13 +690,39 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
             "estimated_moq_investment": round(moq_investment, 2) if moq_investment is not None else None,
             "delivery_days": offer.delivery_days,
             "stock_quantity": offer.stock_quantity,
+            "stock_status": (
+                "unknown" if offer.stock_quantity is None
+                else "insufficient_for_moq" if offer.moq is not None and offer.stock_quantity < offer.moq
+                else "available"
+            ),
+            "moq_fulfillable": (
+                None if offer.stock_quantity is None or offer.moq is None
+                else offer.stock_quantity >= offer.moq
+            ),
             "source_url": offer.source_url,
             "captured_at": offer.captured_at,
             "evidence_status": "user_supplied_or_imported_not_live_verified",
             "evidence_metadata": _evidence_metadata(offer.source_url, offer.captured_at),
         })
 
-    comparisons.sort(key=lambda row: row["planned_profit_per_order"], reverse=True)
+    # A supplier with a known stock shortfall must not outrank one able to meet MOQ.
+    stock_priority = {
+        "available": 2,
+        "unknown": 1,
+        "insufficient_for_moq": 0,
+    }
+    comparisons.sort(
+        key=lambda row: (
+            stock_priority[row["stock_status"]],
+            row["planned_profit_per_order"],
+        ),
+        reverse=True,
+    )
+    for rank, comparison in enumerate(comparisons, start=1):
+        comparison["supplier_rank"] = rank
+    eligible_comparisons = [
+        row for row in comparisons if row["stock_status"] != "insufficient_for_moq"
+    ]
     return {
         "product_name": data.product_name,
         "country": data.country,
@@ -712,14 +738,17 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         },
         "supplier_comparisons": comparisons,
         "best_supplier_by_planned_profit": (
-            comparisons[0]["supplier_id"]
-            if comparisons and comparisons[0]["planned_profit_per_order"] > 0
+            eligible_comparisons[0]["supplier_id"]
+            if eligible_comparisons and eligible_comparisons[0]["planned_profit_per_order"] > 0
             else None
         ),
         "recommendation_status": (
             "positive_estimated_profit_available"
-            if comparisons and comparisons[0]["planned_profit_per_order"] > 0
+            if eligible_comparisons and eligible_comparisons[0]["planned_profit_per_order"] > 0
             else "no_positive_estimated_profit"
+        ),
+        "supplier_ranking_note": (
+            "Known stock shortages below MOQ are ranked after suppliers without a known shortfall. Unknown stock is not treated as verified availability; confirm stock and MOQ directly."
         ),
         "catalog_match_context": ({
             **data.catalog_match_context.model_dump(),
