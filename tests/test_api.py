@@ -1146,10 +1146,10 @@ def test_supplier_catalog_csv_import_rejects_wrong_market_currency_and_unsafe_ur
     }
     wrong_market = {**base, "country": "US", "currency": "USD"}
     assert client.post("/api/v1/supplier-catalog/import", json=wrong_market).status_code == 422
-    unsafe = {**base, "csv_content": "title,price,product_url\\nBlender,100,file:///etc/passwd"}
+    unsafe = {**base, "csv_content": "title,price,product_url\\nSafe Blender,100,https://example.com/safe\\nUnsafe Blender,100,file:///etc/passwd"}
     rejected = client.post("/api/v1/supplier-catalog/import", json=unsafe)
     assert rejected.status_code == 200
-    assert rejected.json()["imported_count"] == 0
+    assert rejected.json()["imported_count"] == 1
     assert rejected.json()["rejected_count"] == 1
 
 
