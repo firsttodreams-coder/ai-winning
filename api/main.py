@@ -650,6 +650,26 @@ def compare_supplier_offers(data: SupplierOfferComparison):
     }
 
 
+def _marketplace_group_summaries(listings):
+    """Summarize submitted listing observations by marketplace without inferring sales."""
+    groups = {}
+    for listing in listings:
+        groups.setdefault(listing["marketplace"], []).append(listing)
+    summaries = []
+    for name, rows in sorted(groups.items(), key=lambda item: item[0].casefold()):
+        prices = [row["observed_total_price"] for row in rows]
+        sold_counts = [row["observed_sold_count"] for row in rows if row["observed_sold_count"] is not None]
+        summaries.append({
+            "marketplace": name,
+            "listing_count": len(rows),
+            "lowest_delivered_price": round(min(prices), 2),
+            "average_delivered_price": round(sum(prices) / len(prices), 2),
+            "median_delivered_price": round(median(prices), 2),
+            "highest_delivered_price": round(max(prices), 2),
+            "observed_sold_count_samples": len(sold_counts),
+        })
+    return summaries
+
 @app.post("/api/v1/marketplace-prices/compare")
 def compare_marketplace_prices(data: MarketplacePriceComparison):
     """Compare user-observed marketplace listings against a supplier quote.
@@ -697,6 +717,7 @@ def compare_marketplace_prices(data: MarketplacePriceComparison):
         "currency": data.currency,
         "listing_count": len(normalized),
         "marketplace_prices": {
+            "by_marketplace": _marketplace_group_summaries(normalized),
             "lowest_delivered_price": round(lowest, 2),
             "average_delivered_price": round(average, 2),
             "median_delivered_price": round(median(totals), 2),
@@ -821,6 +842,7 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         "currency": data.currency,
         "marketplace": {
             "listing_count": len(listing_rows),
+            "by_marketplace": _marketplace_group_summaries(listing_rows),
             "lowest_delivered_price": round(market_low, 2),
             "average_delivered_price": round(market_average, 2),
             "median_delivered_price": round(market_median, 2),
