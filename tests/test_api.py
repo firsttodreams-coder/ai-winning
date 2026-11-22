@@ -998,3 +998,39 @@ def test_evidence_and_listing_urls_require_absolute_http_or_https():
             pass
         else:
             raise AssertionError(f"Unsafe {field} was accepted")
+
+
+def test_supplier_connector_readiness_is_explicit_and_never_exposes_secrets():
+    from api.connectors import build_connector_status
+
+    fake_env = {
+        "ZAMBEEL_API_BASE_URL": "https://api.example.test",
+        "ZAMBEEL_API_TOKEN": "do-not-return-this-token",
+        "TEJARAA_API_BASE_URL": "https://partner.example.test",
+        "TEJARAA_API_KEY": "do-not-return-this-key",
+    }
+    status = build_connector_status(fake_env)
+    assert status["count"] == len(status["connectors"])
+    by_id = {item["id"]: item for item in status["connectors"]}
+
+    assert by_id["zambeel"]["status"] == "configured_not_verified"
+    assert by_id["zambeel"]["connection_verified"] is False
+    assert by_id["zambeel"]["live_catalog_fetch_enabled"] is False
+    assert by_id["tejaraa"]["status"] == "configured_not_verified"
+    assert "PK" in by_id["zambeel"]["countries"]
+    assert "SA" in by_id["tejaraa"]["countries"]
+    assert "do-not-return-this-token" not in str(status)
+    assert "do-not-return-this-key" not in str(status)
+
+
+def test_supplier_connector_status_endpoint_lists_manual_and_partner_routes():
+    response = client.get("/api/v1/supplier-connectors")
+    assert response.status_code == 200
+    result = response.json()
+    by_id = {item["id"]: item for item in result["connectors"]}
+
+    assert {"zambeel", "tejaraa", "ksa-drop", "wave-byte", "atsum-ksa"} <= set(by_id)
+    assert by_id["zambeel"]["status"] == "credentials_missing"
+    assert by_id["ksa-drop"]["status"] == "manual_or_partner_setup_required"
+    assert by_id["wave-byte"]["live_catalog_fetch_enabled"] is False
+    assert result["data_note"].startswith("Readiness only.")
