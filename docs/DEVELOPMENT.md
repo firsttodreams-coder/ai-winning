@@ -40,7 +40,7 @@ Important limitations:
 
 ## Product-specific trend matching
 
-The product trend matcher compares the supplied English product-name tokens with current Google Trends RSS titles for the selected country. It returns only matches covering at least half of the supplied product-name tokens, with matched terms and a simple overlap percentage. This is a lexical relevance filter, not a Google Trends product query, exact search-volume metric, sales signal or forecast. No match does not imply no demand.
+The product trend matcher compares Unicode product-name tokens (including Urdu/Arabic-script text and mixed Urdu-English names) with current Google Trends RSS titles for the selected country. It returns only matches covering at least half of the supplied product-name tokens, with matched terms and a simple overlap percentage. This is a lexical relevance filter, not a Google Trends product query, exact search-volume metric, sales signal or forecast. No match does not imply no demand.
 
 ## Product economics
 POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and break-even price using the costs and price supplied by the user.
