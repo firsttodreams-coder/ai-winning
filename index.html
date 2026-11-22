@@ -727,6 +727,7 @@ $("runUnifiedProfitability").addEventListener("click",async()=>{
     metric(t.unifiedProfitabilityLanded,money(item.landed_cost_per_unit))+
     metric(t.unifiedProfitabilityPlannedProfit,money(item.planned_profit_per_order))+
     metric(t.unifiedProfitabilityMargin,fmt(item.planned_profit_margin_percent)+'%')+
+    metric(language==="ur"?"Investment par ROI":"Return on investment (ROI)",item.planned_roi_percent===null?"—":fmt(item.planned_roi_percent)+"%")+
     metric(t.unifiedProfitabilityMarketProfit,money(item.market_average_profit_per_order))+
     (item.moq!==null?metric(t.unifiedProfitabilityMoqInvestment,money(item.estimated_moq_investment)):"")+
     '<p class="meta">'+escapeResearchText(t.supplierQuoteDelivery)+': '+escapeResearchText(item.delivery_days??"—")+' · '+escapeResearchText(t.supplierQuoteStock)+': '+escapeResearchText(item.stock_quantity??"—")+'</p>'+
@@ -845,7 +846,7 @@ $("matchCatalogs").addEventListener("click",async()=>{
    box.querySelectorAll(".use-catalog-match").forEach(button=>button.addEventListener("click",()=>{const match=data.matches[Number(button.dataset.matchIndex)];if(!match)return;selectedCatalogMatch={supplier_product_id:match.supplier_product.product_id,supplier_title:match.supplier_product.title,marketplace_product_id:match.marketplace_product.product_id,marketplace_title:match.marketplace_product.title,similarity:match.similarity};$("marketCompareProduct").value=match.supplier_product.title;
    const quote=supplierCatalogRows.find(row=>row.product_id===match.supplier_product.product_id),slot=1;
    if(quote&&(quote.supplier_id||quote.product_cost!==null&&quote.product_cost!==undefined)){
-    if(quote.supplier_id&&[...$("supplierQuote"+slot).options].some(option=>option.value===quote.supplier_id))$("supplierQuote"+slot).value=quote.supplier_id;
+    if(quote.supplier_id){const supplierSelect=$("supplierQuote"+slot);if(supplierSelect&&![...supplierSelect.options].some(option=>option.value===quote.supplier_id)){const option=document.createElement("option");option.value=quote.supplier_id;option.textContent=quote.supplier_name||quote.source||quote.supplier_id;supplierSelect.appendChild(option);}if(supplierSelect)supplierSelect.value=quote.supplier_id;}
     if(quote.product_cost!==null&&quote.product_cost!==undefined)$("supplierQuoteCost"+slot).value=String(quote.product_cost);
     if(quote.shipping_cost!==null&&quote.shipping_cost!==undefined)$("supplierQuoteShipping"+slot).value=String(quote.shipping_cost);
     if(quote.handling_cost!==null&&quote.handling_cost!==undefined)$("supplierQuoteHandling"+slot).value=String(quote.handling_cost);
@@ -856,7 +857,7 @@ $("matchCatalogs").addEventListener("click",async()=>{
     if(quote.captured_at)$("supplierQuoteCost"+slot).dataset.capturedAt=quote.captured_at;
    }
    const marketRow=marketCatalogRows.find(row=>row.product_id===match.marketplace_product.product_id);
-   if(marketRow&&marketRow.marketplace_price!==null&&marketRow.marketplace_price!==undefined){ensureNumberedSlots("marketplace",1);const marketSelect=$("marketplace1");const marketName=marketRow.source||"Marketplace";if(marketSelect&&![...marketSelect.options].some(option=>option.value===marketName)){const option=document.createElement("option");option.value=marketName;option.textContent=marketName;marketSelect.appendChild(option);}if(marketSelect)marketSelect.value=marketName;$("marketPrice1").value=String(marketRow.marketplace_price);$("marketShip1").value=String(marketRow.marketplace_shipping_cost??0);$("marketUrl1").value=marketRow.marketplace_listing_url||"";$("marketPrice1").dataset.capturedAt=marketRow.marketplace_captured_at||"";}
+   if(marketRow&&marketRow.marketplace_price!==null&&marketRow.marketplace_price!==undefined){ensureNumberedSlots("marketplace",1);const marketSelect=$("marketplace1");const marketName=marketRow.source||"Marketplace";if(marketSelect&&![...marketSelect.options].some(option=>option.value===marketName)){const option=document.createElement("option");option.value=marketName;option.textContent=marketName;marketSelect.appendChild(option);}if(marketSelect)marketSelect.value=marketName;$("marketPrice1").value=String(marketRow.marketplace_price);if(!$("marketPlannedPrice").value.trim())$("marketPlannedPrice").value=String(marketRow.marketplace_price);$("marketShip1").value=String(marketRow.marketplace_shipping_cost??0);$("marketUrl1").value=marketRow.marketplace_listing_url||"";$("marketPrice1").dataset.capturedAt=marketRow.marketplace_captured_at||"";}
    $("supplierQuoteStatus").textContent=language==="ur"?"سپلائر کی قیمت، اسٹاک، MOQ اور دستیاب مارکیٹ لسٹنگ قیمت فارم میں منتقل کر دی گئی ہیں؛ خالی معلومات درج کریں۔":"Supplier cost, stock, MOQ and available marketplace listing price copied into comparison fields; complete any missing values.";
    $("supplierQuote1").scrollIntoView({behavior:"smooth",block:"center"});
    status.textContent=t.catalogSelectedMatch+" "+match.supplier_product.title+" / "+match.marketplace_product.title;
