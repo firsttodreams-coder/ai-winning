@@ -775,7 +775,7 @@ function parseCatalogFile(text){
    product.product_cost=optionalNumber("product_cost");product.shipping_cost=optionalNumber("shipping_cost");product.handling_cost=optionalNumber("handling_cost");
    product.delivery_days=optionalNumber("delivery_days",true);product.stock_quantity=optionalNumber("stock_quantity",true);product.moq=optionalNumber("moq",true,1);
    product.source_url=values.source_url||null;product.captured_at=values.captured_at||null;
-   if(product.source_url&&!/^https?:\\/\\//i.test(product.source_url))throw new Error("CSV record "+recordNumber+": invalid source_url");
+   if(product.source_url&&!/^https?:\/\//i.test(product.source_url))throw new Error("CSV record "+recordNumber+": invalid source_url");
    if(product.captured_at&&!Number.isFinite(Date.parse(product.captured_at)))throw new Error("CSV record "+recordNumber+": invalid captured_at");
    if(product.supplier_id&&product.supplier_id.length>60)throw new Error("CSV record "+recordNumber+": invalid supplier_id");
    if(product.supplier_name&&product.supplier_name.length>120)throw new Error("CSV record "+recordNumber+": invalid supplier_name");
@@ -796,7 +796,7 @@ async function loadCatalogCsv(inputId,which){
 $("supplierCatalogCsv").addEventListener("change",()=>loadCatalogCsv("supplierCatalogCsv","supplier"));
 $("marketCatalogCsv").addEventListener("change",()=>loadCatalogCsv("marketCatalogCsv","market"));
 $("downloadCatalogTemplates").addEventListener("click",()=>{
- const files=[["supplier-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition,supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,moq,source_url,captured_at\\r\\n"],["marketplace-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition\\r\\n"]];
+ const files=[["supplier-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition,supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,moq,source_url,captured_at\r\n"],["marketplace-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition\r\n"]];
  files.forEach(([name,csv])=>{const url=URL.createObjectURL(new Blob(["\ufeff",csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download=name;link.click();URL.revokeObjectURL(url);});
 });
 $("matchCatalogs").addEventListener("click",async()=>{
