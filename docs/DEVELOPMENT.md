@@ -139,7 +139,7 @@ Example request:
 
 ## Shortlist to profitability workflow (22 November 2026)
 
-Each product returned by the bilingual batch country trend check now has a "Use in price & profit comparison" action. Selecting it copies only that product name into the existing marketplace comparison form and scrolls to the input. The user must still enter current supplier cost, shipping, planned selling price and observed marketplace listings (or import verified CSV observations). This handoff does not fetch supplier prices or marketplace listings and does not change the batch trend result into verified demand.
+Each product returned by the bilingual batch country trend check now has a "Compare suppliers & profit" action. Selecting it copies only that product name into the shared product-name field, carries over the planned selling price only if the supplier comparison field is still blank, and scrolls to the supplier quote workflow. The user must still enter current supplier costs, shipping and handling, then enter observed marketplace listings (or import verified CSV observations) before building the combined report. This handoff does not fetch supplier prices or marketplace listings and does not change the batch trend result into verified demand.
 
 ## Product discovery ranking frontend (22 November 2026)
 
