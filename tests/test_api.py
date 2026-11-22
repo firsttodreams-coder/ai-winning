@@ -1143,8 +1143,8 @@ def test_supplier_catalog_csv_import_rejects_duplicate_product_ids_without_overw
         "country": "PK",
         "currency": "PKR",
         "csv_content": (
-            "product_id,title,price\\n"
-            "BL-01,Portable Blender,1250\\n"
+            "product_id,title,price\n"
+            "BL-01,Portable Blender,1250\n"
             "BL-01,Mini Blender,900"
         ),
     })
