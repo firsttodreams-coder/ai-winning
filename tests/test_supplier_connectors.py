@@ -22,6 +22,8 @@ def test_connector_status_lists_all_supplier_leads_without_claiming_live_connect
     assert by_id["tejaraa"]["countries"] == ["AE", "SA"]
     assert by_id["ksa-drop"]["countries"] == ["SA", "AE"]
     assert by_id["wave-byte"]["countries"] == ["AE", "SA", "OM", "QA", "KW", "BH"]
+    assert by_id["wave-byte"]["dropshipping_countries"] == ["AE", "SA", "OM"]
+    assert by_id["wave-byte"]["fulfillment_countries"] == ["AE", "SA", "OM", "QA", "KW", "BH"]
     assert by_id["tejaraa"]["documentation_url"] == "https://tejaraa.com/help/partner-api"
     assert "sandbox" in by_id["tejaraa"]["official_access_info"].lower()
     assert "7-day free trial" in by_id["wave-byte"]["official_access_info"]
