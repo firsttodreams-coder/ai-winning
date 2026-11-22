@@ -798,3 +798,84 @@ def test_product_discovery_rejects_currency_mismatch_and_duplicate_ids():
     })
     assert mismatch.status_code == 422
     assert duplicate.status_code == 422
+
+
+
+def test_batch_product_trend_check_fetches_one_country_feed_for_multiple_products(monkeypatch):
+    xml = """<?xml version="1.0"?>
+    <rss xmlns:ht="https://trends.google.com/trending/rss">
+      <channel>
+        <item><title>portable blender deals</title><ht:approx_traffic>2000+</ht:approx_traffic></item>
+        <item><title>wireless headphones</title><ht:approx_traffic>1000+</ht:approx_traffic></item>
+      </channel>
+    </rss>"""
+
+    class FakeResponse:
+        text = xml
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        calls = 0
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def get(self, url):
+            self.calls += 1
+            assert url == "https://trends.google.com/trending/rss?geo=PK"
+            return FakeResponse()
+
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.post("/api/v1/product-discovery/trend-check", json={
+        "country": "PK",
+        "product_names": ["portable blender", "wireless headphones", "ceramic mug"]
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result["count"] == 3
+    assert result["results"][0]["match_count"] == 1
+    assert result["results"][1]["match_count"] == 1
+    assert result["results"][2]["match_count"] == 0
+    assert all(item["verified_product_demand"] is False for item in result["results"])
+    assert "does not prove" in result["data_note"]
+
+
+def test_batch_product_trend_check_supports_urdu_product_names(monkeypatch):
+    xml = """<?xml version="1.0"?>
+    <rss><channel><item><title>پورٹیبل بلینڈر کی قیمت</title></item></channel></rss>"""
+
+    class FakeResponse:
+        text = xml
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def get(self, url):
+            return FakeResponse()
+
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.post("/api/v1/product-discovery/trend-check", json={
+        "country": "PK", "product_names": ["پورٹیبل بلینڈر"]
+    })
+    assert response.status_code == 200
+    assert response.json()["results"][0]["match_count"] == 1
+
+
+def test_batch_product_trend_check_validates_names_and_country():
+    duplicate = client.post("/api/v1/product-discovery/trend-check", json={
+        "country": "PK", "product_names": ["USB Blender", "usb blender"]
+    })
+    invalid_country = client.post("/api/v1/product-discovery/trend-check", json={
+        "country": "XX", "product_names": ["USB Blender"]
+    })
+    assert duplicate.status_code == 422
+    assert invalid_country.status_code == 422
