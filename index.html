@@ -804,6 +804,7 @@ function parseCatalogFile(text){
   }else{
    const optionalNumber=(key,min=0)=>{if(!values[key])return null;const n=Number(values[key]);if(!Number.isFinite(n)||n<min)throw new Error("CSV record "+recordNumber+": invalid "+key);return n;};
    product.marketplace_price=optionalNumber("marketplace_price",0);
+   if(product.marketplace_price!==null&&product.marketplace_price<=0)throw new Error("CSV record "+recordNumber+": marketplace_price must be greater than zero");
    product.marketplace_shipping_cost=optionalNumber("marketplace_shipping_cost",0);
    product.marketplace_listing_url=values.marketplace_listing_url||null;
    product.marketplace_captured_at=values.marketplace_captured_at||null;
