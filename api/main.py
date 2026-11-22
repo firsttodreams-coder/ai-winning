@@ -688,6 +688,7 @@ def import_supplier_catalog(data: SupplierCatalogImportRequest):
         supplier = next(item for item in SUPPLIERS if item["id"] == data.supplier_id)
         products = []
         errors = []
+        seen_product_ids = set()
         for row_number, row in enumerate(reader, start=2):
             if not any(str(value or "").strip() for value in row.values()):
                 continue
@@ -698,6 +699,8 @@ def import_supplier_catalog(data: SupplierCatalogImportRequest):
                 if not title:
                     raise ValueError("Product title is empty.")
                 product_id = cell(row, "product_id") or f"{data.supplier_id}-{row_number}"
+                if product_id in seen_product_ids:
+                    raise ValueError("Duplicate product_id in this CSV.")
                 source_url = cell(row, "source_url")
                 if source_url:
                     source_url = _validate_public_http_url(source_url)
@@ -723,6 +726,7 @@ def import_supplier_catalog(data: SupplierCatalogImportRequest):
                     "captured_at": cell(row, "captured_at"),
                     "evidence_status": "user_supplied_or_imported_not_live_verified",
                 })
+                seen_product_ids.add(product_id)
             except (ValueError, TypeError) as exc:
                 errors.append({"row": row_number, "error": str(exc)})
         if not products and errors:
