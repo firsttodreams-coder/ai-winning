@@ -63,6 +63,7 @@ def test_unified_profitability_ranks_stock_shortfalls_below_fulfillable_supplier
     ranked = result["supplier_comparisons"]
     assert ranked[0]["supplier_id"] == "supplier-ready"
     assert ranked[0]["stock_status"] == "available"
+    assert ranked[1]["supplier_id"] == "supplier-unknown"
     assert ranked[0]["moq_fulfillable"] is True
     assert ranked[0]["supplier_rank"] == 1
     low_stock = next(row for row in ranked if row["supplier_id"] == "supplier-low-stock")
