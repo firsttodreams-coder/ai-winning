@@ -288,6 +288,31 @@ def test_google_trends_rss_parser_preserves_source_metrics_and_news():
 
 
 
+def test_trend_freshness_labels_timestamp_age_without_claiming_demand():
+    fixed_now = api_module.datetime(2026, 11, 22, 12, 0, tzinfo=api_module.timezone.utc)
+    fresh = api_module._trend_freshness("2026-11-22T00:00:00+00:00", fixed_now)
+    aging = api_module._trend_freshness("2026-11-19T00:00:00+00:00", fixed_now)
+    stale = api_module._trend_freshness("2026-11-10T00:00:00+00:00", fixed_now)
+    unknown = api_module._trend_freshness(None, fixed_now)
+    future = api_module._trend_freshness("2026-11-23T00:00:00+00:00", fixed_now)
+    assert fresh["trend_freshness"] == "fresh"
+    assert aging["trend_freshness"] == "aging"
+    assert stale["trend_freshness"] == "stale"
+    assert unknown["trend_freshness"] == "unknown"
+    assert future["trend_freshness"] == "future_timestamp"
+
+
+def test_product_trend_match_includes_freshness_and_prefers_fresher_matches():
+    trends = [
+        {"title": "portable blender deals", "started": "2026-11-10T08:00:00+00:00"},
+        {"title": "portable blender offers", "started": "2026-11-22T08:00:00+00:00"},
+    ]
+    result = api_module.match_product_to_trends("Portable Blender", trends)
+    assert result[0]["trend_freshness"] == "fresh"
+    assert result[1]["trend_freshness"] == "stale"
+    assert result[0]["trend_age_hours"] is not None
+
+
 def test_product_trend_match_uses_literal_token_overlap_and_excludes_weak_matches():
     trends = [
         {"title": "portable blender deals", "approx_traffic": "2000+", "started": "2026-11-10T08:00:00+00:00", "news": []},
