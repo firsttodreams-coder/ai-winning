@@ -329,6 +329,25 @@ class CatalogProduct(BaseModel):
     color: str | None = Field(default=None, max_length=60)
     pack_quantity: int | None = Field(default=None, ge=1, le=10000)
     condition: str | None = Field(default=None, max_length=40)
+    supplier_id: str | None = Field(default=None, max_length=60)
+    supplier_name: str | None = Field(default=None, max_length=120)
+    product_cost: float | None = Field(default=None, ge=0, le=100000000)
+    shipping_cost: float | None = Field(default=None, ge=0, le=100000000)
+    handling_cost: float | None = Field(default=None, ge=0, le=100000000)
+    delivery_days: int | None = Field(default=None, ge=0, le=365)
+    stock_quantity: int | None = Field(default=None, ge=0)
+    moq: int | None = Field(default=None, ge=1)
+    source_url: str | None = Field(default=None, max_length=2048)
+    captured_at: str | None = Field(default=None, max_length=64)
+    marketplace_price: float | None = Field(default=None, gt=0, le=100000000)
+    marketplace_shipping_cost: float | None = Field(default=None, ge=0, le=100000000)
+    marketplace_listing_url: str | None = Field(default=None, max_length=2048)
+    marketplace_captured_at: str | None = Field(default=None, max_length=64)
+
+    @field_validator("source_url", "marketplace_listing_url")
+    @classmethod
+    def validate_catalog_urls(cls, value):
+        return _validate_public_http_url(value)
 
 
 class ProductMatchRequest(BaseModel):
