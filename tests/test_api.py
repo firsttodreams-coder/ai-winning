@@ -598,6 +598,11 @@ def test_marketplace_price_comparison_calculates_delivered_market_prices_and_pro
     assert result["planned_price_position"] == "above_average"
     assert result["listings"][0]["observed_sold_count"] is None
     assert result["listings"][0]["evidence_status"] == "user_supplied_or_imported_not_live_verified"
+    grouped = result["marketplace_prices"]["by_marketplace"]
+    assert [row["marketplace"] for row in grouped] == ["Amazon.sa", "Noon", "Other"]
+    assert grouped[0]["listing_count"] == 1
+    assert grouped[0]["average_delivered_price"] == 159
+    assert grouped[2]["observed_sold_count_samples"] == 1
 
 
 def test_marketplace_price_comparison_rejects_empty_listings_and_invalid_country():
