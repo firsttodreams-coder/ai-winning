@@ -329,6 +329,25 @@ class CatalogProduct(BaseModel):
     color: str | None = Field(default=None, max_length=60)
     pack_quantity: int | None = Field(default=None, ge=1, le=10000)
     condition: str | None = Field(default=None, max_length=40)
+    supplier_id: str | None = Field(default=None, max_length=60)
+    supplier_name: str | None = Field(default=None, max_length=120)
+    product_cost: float | None = Field(default=None, ge=0, le=100000000)
+    shipping_cost: float | None = Field(default=None, ge=0, le=100000000)
+    handling_cost: float | None = Field(default=None, ge=0, le=100000000)
+    delivery_days: int | None = Field(default=None, ge=0, le=365)
+    stock_quantity: int | None = Field(default=None, ge=0)
+    moq: int | None = Field(default=None, ge=1)
+    source_url: str | None = Field(default=None, max_length=2048)
+    captured_at: str | None = Field(default=None, max_length=64)
+    marketplace_price: float | None = Field(default=None, gt=0, le=100000000)
+    marketplace_shipping_cost: float | None = Field(default=None, ge=0, le=100000000)
+    marketplace_listing_url: str | None = Field(default=None, max_length=2048)
+    marketplace_captured_at: str | None = Field(default=None, max_length=64)
+
+    @field_validator("source_url", "marketplace_listing_url")
+    @classmethod
+    def validate_catalog_urls(cls, value):
+        return _validate_public_http_url(value)
 
 
 class ProductMatchRequest(BaseModel):
@@ -755,6 +774,7 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
             "planned_selling_price": round(data.planned_selling_price, 2),
             "planned_profit_per_order": round(planned_profit, 2),
             "planned_profit_margin_percent": round(planned_profit / data.planned_selling_price * 100, 2),
+            "planned_roi_percent": round(planned_profit / landed * 100, 2) if landed > 0 else None,
             "market_average_profit_per_order": round(market_profit, 2),
             "market_average_profit_margin_percent": round(market_profit / market_average * 100, 2),
             "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
