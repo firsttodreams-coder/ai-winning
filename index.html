@@ -722,7 +722,7 @@ $("runUnifiedProfitability").addEventListener("click",async()=>{
     '</article>').join("")+
    '<h4>'+escapeResearchText(t.catalogListing)+' ('+r.marketplace.listing_count+')</h4>'+
    r.marketplace.listings.map(item=>'<article class="supplier-card"><strong>'+escapeResearchText(item.marketplace)+'</strong>'+
-    metric(t.marketComparePrice,money(item.observed_total_price))+
+    metric(t.marketListingPrice,money(item.observed_total_price))+
     '<p class="meta">'+escapeResearchText(t.evidenceFreshness)+': '+escapeResearchText(item.evidence_metadata?.freshness_status||"unknown")+' · '+escapeResearchText(item.evidence_metadata?.source_domain||"—")+'</p>'+
     (item.listing_url?'<p class="meta"><a href="'+escapeResearchText(item.listing_url)+'" target="_blank" rel="noopener noreferrer">'+escapeResearchText(t.marketListingUrl)+'</a></p>':"")+
     '</article>').join("")+
