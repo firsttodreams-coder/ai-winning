@@ -22,6 +22,11 @@ def test_connector_status_lists_all_supplier_leads_without_claiming_live_connect
     assert by_id["tejaraa"]["countries"] == ["AE", "SA"]
     assert by_id["ksa-drop"]["countries"] == ["SA", "AE"]
     assert by_id["wave-byte"]["countries"] == ["AE", "SA", "OM", "QA", "KW", "BH"]
+    assert by_id["tejaraa"]["documentation_url"] == "https://tejaraa.com/help/partner-api"
+    assert "sandbox" in by_id["tejaraa"]["official_access_info"].lower()
+    assert "7-day free trial" in by_id["wave-byte"]["official_access_info"]
+    assert "general-purpose public API" in by_id["wave-byte"]["official_access_info"]
+    assert by_id["zambeel"]["documentation_url"].startswith("https://products.myzambeel.com/")
     assert all(item["connection_verified"] is False for item in by_id.values())
     assert all(item["live_catalog_fetch_enabled"] is False for item in by_id.values())
 
