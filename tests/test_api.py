@@ -255,11 +255,11 @@ def test_product_trend_match_uses_literal_token_overlap_and_excludes_weak_matche
 
 def test_product_trend_match_returns_partial_for_half_the_product_terms():
     result = api_module.match_product_to_trends(
-        "wireless portable blender",
+        "wireless portable",
         [{"title": "portable home goods", "approx_traffic": "200+", "started": None, "news": []}],
     )
     assert len(result) == 1
-    assert result[0]["match_score"] == 33.3
+    assert result[0]["match_score"] == 50
     assert result[0]["relevance"] == "partial"
 
 
