@@ -366,6 +366,31 @@ def _trend_tokens(value: str) -> set[str]:
     return set(re.findall(r"[^\W_]+", value.casefold(), flags=re.UNICODE))
 
 
+def _trend_freshness(started: str | None, now: datetime | None = None) -> dict:
+    """Classify trend timestamp age; this is not a demand-strength score."""
+    if not started:
+        return {"trend_age_hours": None, "trend_freshness": "unknown"}
+    try:
+        observed = datetime.fromisoformat(started.strip().replace("Z", "+00:00"))
+        if observed.tzinfo is None:
+            observed = observed.replace(tzinfo=timezone.utc)
+        reference = now or datetime.now(timezone.utc)
+        if reference.tzinfo is None:
+            reference = reference.replace(tzinfo=timezone.utc)
+        age_hours = (reference.astimezone(timezone.utc) - observed.astimezone(timezone.utc)).total_seconds() / 3600
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        return {"trend_age_hours": None, "trend_freshness": "invalid_timestamp"}
+    if age_hours < -0.05:
+        status = "future_timestamp"
+    elif age_hours <= 24:
+        status = "fresh"
+    elif age_hours <= 168:
+        status = "aging"
+    else:
+        status = "stale"
+    return {"trend_age_hours": round(age_hours, 2), "trend_freshness": status}
+
+
 def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]:
     """Find literal Unicode token overlap; never infer sales demand."""
     product_terms = _trend_tokens(product_name)
@@ -379,11 +404,21 @@ def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]
         if coverage >= 0.5:
             matches.append({
                 **trend,
+                **_trend_freshness(trend.get("started")),
                 "match_score": round(coverage * 100, 1),
                 "matched_terms": matched_terms,
                 "relevance": "strong" if coverage == 1 else "partial",
             })
-    return sorted(matches, key=lambda item: (item["match_score"], item.get("started") or ""), reverse=True)
+    freshness_priority = {"fresh": 3, "aging": 2, "unknown": 1, "stale": 0}
+    return sorted(
+        matches,
+        key=lambda item: (
+            freshness_priority.get(item["trend_freshness"], -1),
+            item["match_score"],
+            item.get("started") or "",
+        ),
+        reverse=True,
+    )
 
 
 @app.get("/api/v1/trends/match")
@@ -415,7 +450,8 @@ async def product_trend_matches(
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "match_count": len(matches),
         "matches": matches,
-        "matching_method": "Literal English token overlap against current trend titles; at least 50% of product-name tokens must match.",
+        "matching_method": "Literal Unicode token overlap against current trend titles; at least 50% of product-name tokens must match.",
+        "freshness_method": "Trend timestamps are labelled fresh (up to 24h), aging (24h–7d), stale (over 7d), unknown, or invalid/future; freshness is not demand strength.",
         "data_note": "A name match is only a discovery hint. It does not prove product-specific search volume, purchase intent, marketplace sales or future demand. No match does not mean no demand.",
     }
 
@@ -491,6 +527,7 @@ async def batch_product_trend_check(data: ProductTrendCheckRequest):
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "count": len(results),
         "results": results,
+        "freshness_method": "Matched trend timestamps are labelled fresh (up to 24h), aging (24h–7d), stale (over 7d), unknown, or invalid/future; freshness is not demand strength.",
         "data_note": "One country-level Google Trends feed was checked for all submitted products. Matches are lexical discovery hints only; broad trends do not prove product-specific demand, marketplace sales, or a sales forecast. No match does not mean no demand.",
     }
 
