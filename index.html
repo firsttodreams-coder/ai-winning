@@ -442,7 +442,7 @@ async function matchProductTrends(){
   const result=await response.json();
   if(!result.matches.length){status.textContent=t.productTrendEmpty;return;}
   status.textContent=result.match_count+" · "+t.productTrendNote;
-  box.innerHTML=result.matches.map(item=>'<article class="card"><h4>'+escapeResearchText(item.title)+'</h4><div class="meta">'+escapeResearchText(t.productTrendMatch)+': '+item.match_score+'% · '+escapeResearchText(item.relevance)+' · '+escapeResearchText(item.approx_traffic||"")+'</div><div class="meta">'+escapeResearchText((item.matched_terms||[]).join(", "))'+'</div><div class="meta">'+escapeResearchText(trendFreshnessText(item,t))+'</div>'+(item.started?'<div class="meta">'+escapeResearchText(item.started)+'</div>':"")+'</article>').join("");
+  box.innerHTML=result.matches.map(item=>'<article class="card"><h4>'+escapeResearchText(item.title)+'</h4><div class="meta">'+escapeResearchText(t.productTrendMatch)+': '+item.match_score+'% · '+escapeResearchText(item.relevance)+' · '+escapeResearchText(item.approx_traffic||"")+'</div><div class="meta">'+escapeResearchText((item.matched_terms||[]).join(", "))+'</div><div class="meta">'+escapeResearchText(trendFreshnessText(item,t))+'</div>'+(item.started?'<div class="meta">'+escapeResearchText(item.started)+'</div>':"")+'</article>').join("");
  }catch(error){console.error(error);status.textContent=t.trendsError;}finally{button.disabled=false;}
 }
 $("matchProductTrends").addEventListener("click",matchProductTrends);
