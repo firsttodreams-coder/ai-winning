@@ -813,7 +813,7 @@ $("runMarketComparison").addEventListener("click",async()=>{
  finally{button.disabled=false;}
 });
 $("runSupplierCatalogImport").addEventListener("click",async()=>{
- const button=$("runSupplierCatalogImport"),status=$("supplierCatalogImportStatus"),box=$("supplierCatalogImportResults"),file=$("supplierCatalogImportFile").files[0],t=translations[language];
+ const button=$("runSupplierCatalogImport"),status=$("supplierCatalogImportStatus"),box=$("supplierCatalogImportResults"),file=$("supplierCatalogImportFile").files[0],t=translations[language],esc=value=>String(value??"").replace(/[&<>"\']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[char]));
  if(!file||file.size>2000000){status.textContent=t.supplierCatalogImportError;return;}
  button.disabled=true;status.textContent=t.supplierCatalogImportLoading;box.innerHTML="";
  try{
@@ -823,8 +823,8 @@ $("runSupplierCatalogImport").addEventListener("click",async()=>{
   if(!response.ok)throw new Error(result.detail||("API "+response.status));
   status.textContent=result.imported_count+t.supplierCatalogImportSuccess+result.rejected_count+t.supplierCatalogImportRejected;
   const rows=result.products||[];
-  box.innerHTML=rows.length?'<div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Cost</th><th>Shipping</th><th>Stock</th><th>MOQ</th></tr></thead><tbody>'+rows.map(row=>'<tr><td>'+escapeHtml(row.title)+'</td><td>'+escapeHtml(row.sku||"—")+'</td><td>'+escapeHtml(row.currency+" "+row.product_cost)+'</td><td>'+escapeHtml(row.currency+" "+row.shipping_cost)+'</td><td>'+escapeHtml(row.stock_quantity??"—")+'</td><td>'+escapeHtml(row.moq??"—")+'</td></tr>').join("")+'</tbody></table></div>':"";
-  if(result.row_errors&&result.row_errors.length)box.innerHTML+='<p class="discovery-note">'+result.row_errors.map(row=>"Row "+row.row+": "+escapeHtml(row.error)).join("<br>")+'</p>';
+  box.innerHTML=rows.length?'<div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Cost</th><th>Shipping</th><th>Stock</th><th>MOQ</th></tr></thead><tbody>'+rows.map(row=>'<tr><td>'+esc(row.title)+'</td><td>'+esc(row.sku||"—")+'</td><td>'+esc(row.currency+" "+row.product_cost)+'</td><td>'+esc(row.currency+" "+row.shipping_cost)+'</td><td>'+esc(row.stock_quantity??"—")+'</td><td>'+esc(row.moq??"—")+'</td></tr>').join("")+'</tbody></table></div>':"";
+  if(result.row_errors&&result.row_errors.length)box.innerHTML+='<p class="discovery-note">'+result.row_errors.map(row=>"Row "+row.row+": "+esc(row.error)).join("<br>")+'</p>';
  }catch(error){console.error(error);status.textContent=t.supplierCatalogImportError+" "+(error.message||"");}
  finally{button.disabled=false;}
 });
