@@ -622,23 +622,29 @@ $("downloadSupplierCsvTemplate").addEventListener("click",()=>{
 $("supplierQuoteCsv").addEventListener("change",async event=>{
  const input=event.target,file=input.files&&input.files[0],status=$("supplierQuoteStatus");if(!file)return;
  try{
-  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\ufeff/,""));
+  if(file.size>1024*1024)throw new Error("CSV file exceeds the 1 MB limit");
+  const rows=parseSupplierQuoteCsv((await file.text()).replace(/^\\ufeff/,""));
   if(rows.length<2)throw new Error("CSV has no quote rows");
-  const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["supplier_id","supplier_name","product_cost","shipping_cost","handling_cost","delivery_days","stock_quantity","source_url"];
+  const headers=rows[0].map(value=>value.trim().toLowerCase()),required=["supplier_id","supplier_name","product_cost"],allowed=["supplier_id","supplier_name","product_cost","shipping_cost","handling_cost","delivery_days","stock_quantity","moq","source_url","captured_at"];
   if(headers.some(key=>!key)||new Set(headers).size!==headers.length)throw new Error("CSV headers must be non-empty and unique");
-  if(required.some(key=>!headers.includes(key)))throw new Error("CSV headers do not match template");
+  if(required.some(key=>!headers.includes(key))||headers.some(key=>!allowed.includes(key)))throw new Error("CSV headers do not match the supported supplier quote format");
   const records=rows.slice(1);
   if(records.length>50){status.textContent=translations[language].supplierQuoteCsvTooMany;return;}
   if(!records.length)throw new Error("CSV has no quote rows");
   const parsed=records.map((record,index)=>{
    const recordNumber=index+2;
    if(record.length!==headers.length)throw new Error("CSV record "+recordNumber+": column count does not match header");
-   const values=Object.fromEntries(headers.map((key,column)=>[key,(record[column]||"").trim()])),supplierId=values.supplier_id,availableSelect=$("supplierQuote1");
-   if(!supplierId||![...availableSelect.options].some(option=>option.value===supplierId))throw new Error("CSV record "+recordNumber+": supplier ID unavailable for selected country");
-   const cost=Number(values.product_cost),shipping=values.shipping_cost===""?0:Number(values.shipping_cost),handling=values.handling_cost===""?0:Number(values.handling_cost),delivery=values.delivery_days===""?null:Number(values.delivery_days),stock=values.stock_quantity===""?null:Number(values.stock_quantity),moq=values.moq===""||values.moq===undefined?null:Number(values.moq);
-   if(!Number.isFinite(cost)||cost<0||!Number.isFinite(shipping)||shipping<0||!Number.isFinite(handling)||handling<0||(delivery!==null&&(!Number.isInteger(delivery)||delivery<0||delivery>365))||(stock!==null&&(!Number.isInteger(stock)||stock<0))||(moq!==null&&(!Number.isInteger(moq)||moq<1))||(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at))))throw new Error("CSV record "+recordNumber+": invalid numeric quote value or capture timestamp");
-   if(values.source_url&&!/^https?:\/\//i.test(values.source_url))throw new Error("CSV record "+recordNumber+": invalid source URL");
-   return {supplierId,cost,shipping,handling,delivery,stock,moq,sourceUrl:values.source_url||"",capturedAt:values.captured_at||""};
+   const values=Object.fromEntries(headers.map((key,column)=>[key,(record[column]||"").trim()])),supplierId=values.supplier_id,supplierName=values.supplier_name,availableSelect=$("supplierQuote1");
+   const option=[...availableSelect.options].find(item=>item.value===supplierId);
+   if(!supplierId||!option)throw new Error("CSV record "+recordNumber+": supplier ID unavailable for selected country");
+   if(!supplierName||supplierName.length>120)throw new Error("CSV record "+recordNumber+": supplier name is required and must be 120 characters or fewer");
+   const numeric=(key,defaultValue)=>values[key]===undefined||values[key]===""?defaultValue:Number(values[key]);
+   const cost=numeric("product_cost",null),shipping=numeric("shipping_cost",0),handling=numeric("handling_cost",0),delivery=numeric("delivery_days",null),stock=numeric("stock_quantity",null),moq=numeric("moq",null);
+   if(!Number.isFinite(cost)||cost<0||!Number.isFinite(shipping)||shipping<0||!Number.isFinite(handling)||handling<0||(delivery!==null&&(!Number.isInteger(delivery)||delivery<0||delivery>365))||(stock!==null&&(!Number.isInteger(stock)||stock<0))||(moq!==null&&(!Number.isInteger(moq)||moq<1)))throw new Error("CSV record "+recordNumber+": invalid numeric quote value");
+   if(values.captured_at&&!Number.isFinite(Date.parse(values.captured_at)))throw new Error("CSV record "+recordNumber+": invalid capture timestamp");
+   const sourceUrl=values.source_url||"";
+   if(sourceUrl){let parsedUrl;try{parsedUrl=new URL(sourceUrl);}catch(_){throw new Error("CSV record "+recordNumber+": invalid source URL");}if(!["http:","https:"].includes(parsedUrl.protocol)||!parsedUrl.hostname||parsedUrl.username||parsedUrl.password)throw new Error("CSV record "+recordNumber+": source URL must be a public HTTP(S) link without credentials");}
+   return {supplierId,cost,shipping,handling,delivery,stock,moq,sourceUrl,capturedAt:values.captured_at||""};
   });
   ensureNumberedSlots("supplierQuote",parsed.length);
   for(let slot=1;slot<=getNumberedSlotCount("supplierQuote");slot++){$("supplierQuote"+slot).value="";$("supplierQuoteCost"+slot).value="";$("supplierQuoteCost"+slot).dataset.capturedAt="";$("supplierQuoteShipping"+slot).value="0";$("supplierQuoteHandling"+slot).value="0";$("supplierQuoteDelivery"+slot).value="";$("supplierQuoteStock"+slot).value="";$("supplierQuoteMoq"+slot).value="";$("supplierQuoteUrl"+slot).value="";}
