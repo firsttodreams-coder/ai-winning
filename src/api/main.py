@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from api.connectors import router as supplier_connectors_router
 
 app = FastAPI(
@@ -84,6 +84,26 @@ COUNTRY_CURRENCIES = {
 }
 
 
+def _validate_public_http_url(value: str | None) -> str | None:
+    """Accept only absolute public HTTP(S) URLs for evidence provenance."""
+    if value is None:
+        return None
+    candidate = value.strip()
+    try:
+        parsed = urlsplit(candidate)
+        valid = (
+            parsed.scheme.lower() in {"http", "https"}
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError("URL must be an absolute HTTP or HTTPS address without embedded credentials.")
+    return candidate
+
+
 def _validate_market_currency(country: str, currency: str) -> None:
     expected = COUNTRY_CURRENCIES[country]
     if currency != expected:
@@ -148,6 +168,11 @@ class OpportunityEvidence(BaseModel):
     source_url: str = Field(min_length=8, max_length=2048)
     captured_at: str | None = Field(default=None, max_length=64)
 
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value):
+        return _validate_public_http_url(value)
+
 
 class ProductOpportunityCandidate(BaseModel):
     candidate_id: str = Field(min_length=1, max_length=80)
@@ -196,6 +221,11 @@ class SupplierOffer(BaseModel):
     source_url: str | None = Field(default=None, max_length=2048)
     captured_at: str | None = Field(default=None, max_length=64)
 
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value):
+        return _validate_public_http_url(value)
+
 
 class SupplierOfferComparison(BaseModel):
     country: str = Field(pattern=r"^(PK|US|GB|AE|SA|IN|CA|AU|DE|OM|QA|KW|BH)$")
@@ -227,6 +257,11 @@ class MarketplaceListing(BaseModel):
     listing_url: str | None = Field(default=None, max_length=2048)
     observed_sold_count: int | None = Field(default=None, ge=0)
     captured_at: str | None = Field(default=None, max_length=64)
+
+    @field_validator("listing_url")
+    @classmethod
+    def validate_listing_url(cls, value):
+        return _validate_public_http_url(value)
 
 
 class MarketplacePriceComparison(BaseModel):
