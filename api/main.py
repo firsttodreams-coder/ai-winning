@@ -391,7 +391,7 @@ def _trend_freshness(started: str | None, now: datetime | None = None) -> dict:
     return {"trend_age_hours": round(age_hours, 2), "trend_freshness": status}
 
 
-def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]:
+def match_product_to_trends(product_name: str, trends: list[dict], now: datetime | None = None) -> list[dict]:
     """Find literal Unicode token overlap; never infer sales demand."""
     product_terms = _trend_tokens(product_name)
     if not product_terms:
@@ -404,7 +404,7 @@ def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]
         if coverage >= 0.5:
             matches.append({
                 **trend,
-                **_trend_freshness(trend.get("started")),
+                **_trend_freshness(trend.get("started"), now),
                 "match_score": round(coverage * 100, 1),
                 "matched_terms": matched_terms,
                 "relevance": "strong" if coverage == 1 else "partial",
