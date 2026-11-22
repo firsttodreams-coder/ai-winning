@@ -953,3 +953,48 @@ def test_batch_product_trend_check_validates_names_and_country():
     })
     assert duplicate.status_code == 422
     assert invalid_country.status_code == 422
+
+
+def test_evidence_and_listing_urls_require_absolute_http_or_https():
+    valid_evidence = api_module.OpportunityEvidence(
+        evidence_type="listing",
+        source_name="Marketplace",
+        source_url=" https://example.com/product/1 ",
+    )
+    assert valid_evidence.source_url == "https://example.com/product/1"
+
+    invalid_urls = [
+        "javascript:alert(1)",
+        "ftp://example.com/file",
+        "https:///missing-host",
+        "https://user:password@example.com/private",
+        "not-a-url",
+    ]
+    for url in invalid_urls:
+        try:
+            api_module.OpportunityEvidence(
+                evidence_type="listing",
+                source_name="Marketplace",
+                source_url=url,
+            )
+        except Exception:
+            pass
+        else:
+            raise AssertionError(f"Unsafe evidence URL was accepted: {url}")
+
+    for model, field in [
+        (api_module.SupplierOffer, "source_url"),
+        (api_module.MarketplaceListing, "listing_url"),
+    ]:
+        kwargs = (
+            {"supplier_id": "test", "supplier_name": "Test", "product_cost": 10}
+            if field == "source_url"
+            else {"marketplace": "Test", "price": 10}
+        )
+        kwargs[field] = "javascript:alert(1)"
+        try:
+            model(**kwargs)
+        except Exception:
+            pass
+        else:
+            raise AssertionError(f"Unsafe {field} was accepted")
