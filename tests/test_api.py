@@ -99,6 +99,33 @@ def test_catalog_match_suggests_similar_titles_and_marks_review_required():
     assert "m2" in result["unmatched_marketplace_product_ids"]
 
 
+def test_catalog_match_preserves_supplier_and_marketplace_comparison_fields():
+    response = client.post("/api/v1/catalog/match", json={
+        "supplier_products": [{
+            "product_id": "s-price", "title": "USB desk fan",
+            "supplier_id": "supplier-a", "supplier_name": "Supplier A",
+            "product_cost": 900, "shipping_cost": 100, "handling_cost": 20,
+            "delivery_days": 3, "stock_quantity": 30, "moq": 2,
+            "source_url": "https://example.com/supplier",
+        }],
+        "marketplace_products": [{
+            "product_id": "m-price", "title": "USB desk fan",
+            "marketplace_price": 2200, "marketplace_shipping_cost": 150,
+            "marketplace_listing_url": "https://example.com/listing",
+            "marketplace_captured_at": "2026-11-22T08:00:00Z",
+        }],
+        "minimum_similarity": 0.5,
+    })
+    assert response.status_code == 200
+    match = response.json()["matches"][0]
+    assert match["supplier_product"]["product_cost"] == 900
+    assert match["supplier_product"]["stock_quantity"] == 30
+    assert match["supplier_product"]["moq"] == 2
+    assert match["marketplace_product"]["marketplace_price"] == 2200
+    assert match["marketplace_product"]["marketplace_shipping_cost"] == 150
+    assert match["marketplace_product"]["marketplace_listing_url"] == "https://example.com/listing"
+
+
 def test_catalog_match_rejects_empty_catalog_and_invalid_threshold():
     empty = client.post("/api/v1/catalog/match", json={
         "supplier_products": [],
