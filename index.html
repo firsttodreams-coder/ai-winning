@@ -716,7 +716,16 @@ $("runUnifiedProfitability").addEventListener("click",async()=>{
     metric(t.unifiedProfitabilityMargin,fmt(item.planned_profit_margin_percent)+'%')+
     metric(t.unifiedProfitabilityMarketProfit,money(item.market_average_profit_per_order))+
     (item.moq!==null?metric(t.unifiedProfitabilityMoqInvestment,money(item.estimated_moq_investment)):"")+
-    '<p class="meta">'+escapeResearchText(t.supplierQuoteDelivery)+': '+escapeResearchText(item.delivery_days??"—")+' · '+escapeResearchText(t.supplierQuoteStock)+': '+escapeResearchText(item.stock_quantity??"—")+'</p></article>').join("")+
+    '<p class="meta">'+escapeResearchText(t.supplierQuoteDelivery)+': '+escapeResearchText(item.delivery_days??"—")+' · '+escapeResearchText(t.supplierQuoteStock)+': '+escapeResearchText(item.stock_quantity??"—")+'</p>'+
+    '<p class="meta">'+escapeResearchText(t.evidenceFreshness)+': '+escapeResearchText(item.evidence_metadata?.freshness_status||"unknown")+' · '+escapeResearchText(item.evidence_metadata?.source_domain||"—")+'</p>'+
+    (item.source_url?'<p class="meta"><a href="'+escapeResearchText(item.source_url)+'" target="_blank" rel="noopener noreferrer">'+escapeResearchText(t.supplierQuoteUrl)+'</a></p>':"")+
+    '</article>').join("")+
+   '<h4>'+escapeResearchText(t.catalogListing)+' ('+r.marketplace.listing_count+')</h4>'+
+   r.marketplace.listings.map(item=>'<article class="supplier-card"><strong>'+escapeResearchText(item.marketplace)+'</strong>'+
+    metric(t.marketComparePrice,money(item.observed_total_price))+
+    '<p class="meta">'+escapeResearchText(t.evidenceFreshness)+': '+escapeResearchText(item.evidence_metadata?.freshness_status||"unknown")+' · '+escapeResearchText(item.evidence_metadata?.source_domain||"—")+'</p>'+
+    (item.listing_url?'<p class="meta"><a href="'+escapeResearchText(item.listing_url)+'" target="_blank" rel="noopener noreferrer">'+escapeResearchText(t.marketListingUrl)+'</a></p>':"")+
+    '</article>').join("")+
    (r.catalog_match_context?'<p class="discovery-note">'+escapeResearchText(t.catalogMatchContext)+': '+escapeResearchText(r.catalog_match_context.supplier_title)+' → '+escapeResearchText(r.catalog_match_context.marketplace_title)+' · '+Math.round(r.catalog_match_context.similarity*100)+'% · '+escapeResearchText(t.catalogReview)+'</p>':"")+'<p class="discovery-note">'+escapeResearchText(t.unifiedIdentityAudit)+' '+escapeResearchText(r.product_identity_review.review_note)+'</p>'+
    '<p class="discovery-note">'+escapeResearchText(t.unifiedProfitabilityEvidence)+' '+escapeResearchText(r.data_note)+'</p>';
   status.textContent=t.unifiedProfitabilitySuccess;
