@@ -73,7 +73,7 @@ def test_supplier_catalog_preview_survives_browser_storage_failure():
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
     start = html.index("async function saveSupplierCatalogSafely(")
-    end = html.index("\\nconst supplierCatalogEscape", start)
+    end = html.index("\nconst supplierCatalogEscape", start)
     helper = html[start:end]
     handler_start = html.index('$("runSupplierCatalogImport").addEventListener')
     handler_end = html.index('renderSavedSupplierCatalog();', handler_start)
