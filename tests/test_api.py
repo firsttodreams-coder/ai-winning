@@ -1067,3 +1067,40 @@ def test_supplier_connector_status_endpoint_lists_manual_and_partner_routes():
     assert by_id["ksa-drop"]["status"] == "manual_or_partner_setup_required"
     assert by_id["wave-byte"]["live_catalog_fetch_enabled"] is False
     assert result["data_note"].startswith("Readiness only.")
+
+
+
+def test_unified_profitability_calculates_each_marketplace_profit_for_each_supplier():
+    response = client.post("/api/v1/product-profitability/compare", json={
+        "product_name": "USB Blender",
+        "country": "PK",
+        "currency": "PKR",
+        "planned_selling_price": 3200,
+        "platform_fee_percent": 10,
+        "marketing_cost": 100,
+        "returns_allowance": 50,
+        "product_identity_confirmed": True,
+        "offers": [{
+            "supplier_id": "supplier-a",
+            "supplier_name": "Supplier A",
+            "product_cost": 1000,
+            "shipping_cost": 200,
+            "handling_cost": 100,
+        }],
+        "listings": [
+            {"marketplace": "Daraz", "price": 1800},
+            {"marketplace": "Daraz", "price": 2200},
+            {"marketplace": "Noon", "price": 3000},
+        ],
+    })
+    assert response.status_code == 200
+    result = response.json()
+    supplier = result["supplier_comparisons"][0]
+    by_market = {row["marketplace"]: row for row in supplier["marketplace_profitability"]}
+    assert by_market["Daraz"]["listing_count"] == 2
+    assert by_market["Daraz"]["average_delivered_price"] == 2000
+    assert by_market["Daraz"]["lowest_delivered_price"] == 1800
+    assert by_market["Daraz"]["estimated_profit_at_average_price"] == 350
+    assert by_market["Daraz"]["estimated_profit_at_lowest_price"] == 170
+    assert by_market["Noon"]["estimated_profit_at_average_price"] == 1250
+    assert by_market["Noon"]["estimated_margin_at_average_price_percent"] == 41.67
