@@ -801,6 +801,14 @@ function parseCatalogFile(text){
    if(product.captured_at&&!Number.isFinite(Date.parse(product.captured_at)))throw new Error("CSV record "+recordNumber+": invalid captured_at");
    if(product.supplier_id&&product.supplier_id.length>60)throw new Error("CSV record "+recordNumber+": invalid supplier_id");
    if(product.supplier_name&&product.supplier_name.length>120)throw new Error("CSV record "+recordNumber+": invalid supplier_name");
+  }else{
+   const optionalNumber=(key,min=0)=>{if(!values[key])return null;const n=Number(values[key]);if(!Number.isFinite(n)||n<min)throw new Error("CSV record "+recordNumber+": invalid "+key);return n;};
+   product.marketplace_price=optionalNumber("marketplace_price",0);
+   product.marketplace_shipping_cost=optionalNumber("marketplace_shipping_cost",0);
+   product.marketplace_listing_url=values.marketplace_listing_url||null;
+   product.marketplace_captured_at=values.marketplace_captured_at||null;
+   if(product.marketplace_listing_url&&!/^https?:\/\//i.test(product.marketplace_listing_url))throw new Error("CSV record "+recordNumber+": invalid marketplace_listing_url");
+   if(product.marketplace_captured_at&&!Number.isFinite(Date.parse(product.marketplace_captured_at)))throw new Error("CSV record "+recordNumber+": invalid marketplace_captured_at");
   }
   return product;
  });
@@ -818,7 +826,7 @@ async function loadCatalogCsv(inputId,which){
 $("supplierCatalogCsv").addEventListener("change",()=>loadCatalogCsv("supplierCatalogCsv","supplier"));
 $("marketCatalogCsv").addEventListener("change",()=>loadCatalogCsv("marketCatalogCsv","market"));
 $("downloadCatalogTemplates").addEventListener("click",()=>{
- const files=[["supplier-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition,supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,moq,source_url,captured_at\r\n"],["marketplace-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition\r\n"]];
+ const files=[["supplier-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition,supplier_id,supplier_name,product_cost,shipping_cost,handling_cost,delivery_days,stock_quantity,moq,source_url,captured_at\r\n"],["marketplace-catalog-template.csv","product_id,title,sku,source,brand,model,size,color,pack_quantity,condition,marketplace_price,marketplace_shipping_cost,marketplace_listing_url,marketplace_captured_at\r\n"]];
  files.forEach(([name,csv])=>{const url=URL.createObjectURL(new Blob(["\ufeff",csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download=name;link.click();URL.revokeObjectURL(url);});
 });
 $("matchCatalogs").addEventListener("click",async()=>{
@@ -832,7 +840,7 @@ $("matchCatalogs").addEventListener("click",async()=>{
   if(!data.matches.length){status.textContent=t.catalogMatchNone;return;}
   const confidenceLabel={high:t.catalogHigh,medium:t.catalogMedium,low:t.catalogLow};
    const reasonLabel={exact_sku:t.catalogExactSku,title_and_variant_compatible:t.catalogVariantTitle,title_similarity:t.catalogTitleOnly};
-   box.innerHTML=data.matches.map((match,index)=>'<article class="supplier-card"><h4>'+escapeResearchText(match.supplier_product.title)+'</h4><p class="meta">'+escapeResearchText(t.catalogSupplier)+': '+escapeResearchText(match.supplier_product.product_id)+'</p><p class="meta">'+escapeResearchText(t.catalogListing)+': '+escapeResearchText(match.marketplace_product.title)+' ('+escapeResearchText(match.marketplace_product.product_id)+')</p><p><strong>'+escapeResearchText(t.catalogMatchScore)+': '+fmt(match.similarity)+'</strong></p><p class="meta">'+escapeResearchText(t.catalogConfidence)+': '+escapeResearchText(confidenceLabel[match.confidence]||match.confidence||"—")+'</p><p class="meta">'+escapeResearchText(t.catalogReason)+': '+escapeResearchText(reasonLabel[match.match_reason]||match.match_reason||"—")+'</p><span class="tag">'+escapeResearchText(t.catalogReview)+'</span><button type="button" class="secondary use-catalog-match" data-match-index="'+index+'">'+escapeResearchText(t.catalogUseMatch)+'</button></article>').join("");
+   box.innerHTML=data.matches.map((match,index)=>'<article class="supplier-card"><h4>'+escapeResearchText(match.supplier_product.title)+'</h4><p class="meta">'+escapeResearchText(t.catalogSupplier)+': '+escapeResearchText(match.supplier_product.product_id)+'</p><p class="meta">'+escapeResearchText(t.catalogListing)+': '+escapeResearchText(match.marketplace_product.title)+' ('+escapeResearchText(match.marketplace_product.product_id)+')</p><p><strong>'+escapeResearchText(t.catalogMatchScore)+': '+fmt(match.similarity)+'</strong></p><p class="meta">'+escapeResearchText(t.catalogConfidence)+': '+escapeResearchText(confidenceLabel[match.confidence]||match.confidence||"—")+'</p><p class="meta">'+escapeResearchText(t.catalogReason)+': '+escapeResearchText(reasonLabel[match.match_reason]||match.match_reason||"—")+'</p>'+(match.supplier_product.product_cost!==null&&match.supplier_product.product_cost!==undefined?'<p class="meta">Supplier cost: '+escapeResearchText($("econCurrency").value+" "+match.supplier_product.product_cost)+' · Stock: '+escapeResearchText(match.supplier_product.stock_quantity??"—")+' · MOQ: '+escapeResearchText(match.supplier_product.moq??"—")+'</p>':"")+(match.marketplace_product.marketplace_price!==null&&match.marketplace_product.marketplace_price!==undefined?'<p class="meta">Marketplace price: '+escapeResearchText($("econCurrency").value+" "+match.marketplace_product.marketplace_price)+' · Shipping: '+escapeResearchText(match.marketplace_product.marketplace_shipping_cost??0)+'</p>':"")+'<span class="tag">'+escapeResearchText(t.catalogReview)+'</span><button type="button" class="secondary use-catalog-match" data-match-index="'+index+'">'+escapeResearchText(t.catalogUseMatch)+'</button></article>').join("");
    box.querySelectorAll(".use-catalog-match").forEach(button=>button.addEventListener("click",()=>{const match=data.matches[Number(button.dataset.matchIndex)];if(!match)return;selectedCatalogMatch={supplier_product_id:match.supplier_product.product_id,supplier_title:match.supplier_product.title,marketplace_product_id:match.marketplace_product.product_id,marketplace_title:match.marketplace_product.title,similarity:match.similarity};$("marketCompareProduct").value=match.supplier_product.title;
    const quote=supplierCatalogRows.find(row=>row.product_id===match.supplier_product.product_id),slot=1;
    if(quote&&(quote.supplier_id||quote.product_cost!==null&&quote.product_cost!==undefined)){
@@ -846,7 +854,9 @@ $("matchCatalogs").addEventListener("click",async()=>{
     if(quote.source_url)$("supplierQuoteUrl"+slot).value=quote.source_url;
     if(quote.captured_at)$("supplierQuoteCost"+slot).dataset.capturedAt=quote.captured_at;
    }
-   $("supplierQuoteStatus").textContent=language==="ur"?"کیٹلاگ سے دستیاب سپلائر کی قیمت کی معلومات فارم میں منتقل کر دی گئی ہیں؛ خالی معلومات خود درج کریں۔":"Available supplier quote fields copied from the catalogue; complete any missing values.";
+   const marketRow=marketCatalogRows.find(row=>row.product_id===match.marketplace_product.product_id);
+   if(marketRow&&marketRow.marketplace_price!==null&&marketRow.marketplace_price!==undefined){ensureNumberedSlots("marketplace",1);const marketSelect=$("marketplace1");const marketName=marketRow.source||"Marketplace";if(marketSelect&&![...marketSelect.options].some(option=>option.value===marketName)){const option=document.createElement("option");option.value=marketName;option.textContent=marketName;marketSelect.appendChild(option);}if(marketSelect)marketSelect.value=marketName;$("marketPrice1").value=String(marketRow.marketplace_price);$("marketShip1").value=String(marketRow.marketplace_shipping_cost??0);$("marketUrl1").value=marketRow.marketplace_listing_url||"";$("marketPrice1").dataset.capturedAt=marketRow.marketplace_captured_at||"";}
+   $("supplierQuoteStatus").textContent=language==="ur"?"سپلائر کی قیمت، اسٹاک، MOQ اور دستیاب مارکیٹ لسٹنگ قیمت فارم میں منتقل کر دی گئی ہیں؛ خالی معلومات درج کریں۔":"Supplier cost, stock, MOQ and available marketplace listing price copied into comparison fields; complete any missing values.";
    $("supplierQuote1").scrollIntoView({behavior:"smooth",block:"center"});
    status.textContent=t.catalogSelectedMatch+" "+match.supplier_product.title+" / "+match.marketplace_product.title;
   }));
