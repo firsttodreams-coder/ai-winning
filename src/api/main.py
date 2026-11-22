@@ -348,7 +348,7 @@ def scoring_model():
 
 def _trend_tokens(value: str) -> set[str]:
     """Tokenize Unicode letters and numbers, including Urdu and Arabic-script text."""
-    return set(re.findall(r"[^\\W_]+", value.casefold(), flags=re.UNICODE))
+    return set(re.findall(r"[^\W_]+", value.casefold(), flags=re.UNICODE))
 
 
 def match_product_to_trends(product_name: str, trends: list[dict]) -> list[dict]:
