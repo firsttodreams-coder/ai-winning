@@ -710,7 +710,8 @@ $("runUnifiedProfitability").addEventListener("click",async()=>{
    metric(t.unifiedProfitabilityMarketAverage,money(m.average_delivered_price))+
    metric(t.unifiedProfitabilityMarketRange,money(m.lowest_delivered_price)+' – '+money(m.highest_delivered_price))+
    '<div class="supplier-card"><strong>'+escapeResearchText(r.best_supplier_by_planned_profit?t.unifiedProfitabilityBest:t.unifiedNoPositiveProfit)+(r.best_supplier_by_planned_profit?': '+escapeResearchText(r.supplier_comparisons[0]?.supplier_name||"—"):"")+'</strong></div>'+
-   r.supplier_comparisons.map(item=>'<article class="supplier-card"><h4>'+escapeResearchText(item.supplier_name)+'</h4>'+
+   r.supplier_comparisons.map(item=>'<article class="supplier-card"><h4>#'+escapeResearchText(item.supplier_rank)+' · '+escapeResearchText(item.supplier_name)+'</h4>'+
+    metric(language==="ur"?"Stock ki surat-e-haal":"Stock status",item.stock_status==="available"?(language==="ur"?"MOQ ke liye kafi":"Sufficient for MOQ"):item.stock_status==="insufficient_for_moq"?(language==="ur"?"MOQ se kam stock":"Below MOQ stock"):(language==="ur"?"Tasdeeq darkar":"Unverified / unknown"))+
     metric(t.unifiedProfitabilityLanded,money(item.landed_cost_per_unit))+
     metric(t.unifiedProfitabilityPlannedProfit,money(item.planned_profit_per_order))+
     metric(t.unifiedProfitabilityMargin,fmt(item.planned_profit_margin_percent)+'%')+
