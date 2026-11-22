@@ -766,6 +766,7 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
     market_low = min(market_prices)
     market_high = max(market_prices)
     fee_rate = data.platform_fee_percent / 100
+    marketplace_groups = _marketplace_group_summaries(listing_rows)
     comparisons = []
 
     for offer in data.offers:
@@ -798,6 +799,15 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
             "planned_roi_percent": round(planned_profit / landed * 100, 2) if landed > 0 else None,
             "market_average_profit_per_order": round(market_profit, 2),
             "market_average_profit_margin_percent": round(market_profit / market_average * 100, 2),
+            "marketplace_profitability": [{
+                "marketplace": group["marketplace"],
+                "listing_count": group["listing_count"],
+                "average_delivered_price": group["average_delivered_price"],
+                "lowest_delivered_price": group["lowest_delivered_price"],
+                "estimated_profit_at_average_price": round(group["average_delivered_price"] * (1 - fee_rate) - landed - data.marketing_cost - data.returns_allowance, 2),
+                "estimated_profit_at_lowest_price": round(group["lowest_delivered_price"] * (1 - fee_rate) - landed - data.marketing_cost - data.returns_allowance, 2),
+                "estimated_margin_at_average_price_percent": round(((group["average_delivered_price"] * (1 - fee_rate) - landed - data.marketing_cost - data.returns_allowance) / group["average_delivered_price"] * 100), 2),
+            } for group in marketplace_groups],
             "break_even_selling_price": round(break_even, 2) if break_even is not None else None,
             "moq": offer.moq,
             "estimated_moq_investment": round(moq_investment, 2) if moq_investment is not None else None,
@@ -842,7 +852,7 @@ def compare_product_profitability(data: UnifiedProfitabilityComparison):
         "currency": data.currency,
         "marketplace": {
             "listing_count": len(listing_rows),
-            "by_marketplace": _marketplace_group_summaries(listing_rows),
+            "by_marketplace": marketplace_groups,
             "lowest_delivered_price": round(market_low, 2),
             "average_delivered_price": round(market_average, 2),
             "median_delivered_price": round(market_median, 2),
