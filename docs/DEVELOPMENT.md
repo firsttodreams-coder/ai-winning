@@ -83,3 +83,17 @@ The `POST /api/v1/product-profitability/compare` endpoint combines user-entered 
 Request fields include `product_name`, `country`, matching `currency`, `planned_selling_price`, `product_identity_confirmed: true`, optional platform fee/marketing/returns costs, at least one `offers` entry, and at least one `listings` entry. The identity flag is a manual confirmation gate: it records that the user checked the same product and variant, not an automated identity verification. An optional `catalog_match_context` preserves the selected catalogue suggestion as unverified provenance. Supplier offers retain source URL and capture time; marketplace listings retain listing URL and capture time. Freshness metadata is descriptive only. Neither input is fetched or independently verified by this endpoint.
 
 MOQ investment is calculated as landed unit cost multiplied by MOQ. Profit estimates exclude taxes, duties, COD, payment fees and unentered costs. The best-supplier field ranks suppliers by estimated profit at the planned selling price, not by verified sales or guaranteed outcomes.
+
+
+## Supplier connector readiness endpoint (22 November 2026)
+
+GET `/api/v1/supplier-connectors` reports integration readiness for Zambeel, Tejaraa and Wave Byte. It returns provider markets, integration path, required environment-variable names, missing variable names, and manual fallback options. It never returns secret values and never claims a live connection merely because credentials are present.
+
+Current readiness rules:
+- Zambeel: expects deployment secrets `ZAMBEEL_API_BASE_URL` and `ZAMBEEL_API_TOKEN`; approved API/feed access and its schema still need to be obtained from the provider.
+- Tejaraa: expects `TEJARAA_API_BASE_URL` and `TEJARAA_API_KEY`; the provider documents live/sandbox Partner API keys and plan-limited catalog exports, but this repository does not yet implement a provider-specific request until the official endpoint/auth schema and credentials are confirmed.
+- Wave Byte: remains an optional official Shopify-app/approved-feed route; do not require its paid app for the free core product finder.
+
+A status of `configured_not_verified` means only that required environment variables exist. `connection_verified` and `live_catalog_fetch_enabled` remain false until an authenticated provider request and response validation are implemented. Manual product URL review and CSV import remain the fallback. Never paste supplier secrets into GitHub source files, frontend code, or chat; add approved credentials only as deployment secrets.
+
+Tests in `tests/test_supplier_connectors.py` cover missing/configured readiness, no secret disclosure, and manual fallback behavior.
