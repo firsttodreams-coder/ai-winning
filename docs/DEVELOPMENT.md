@@ -28,7 +28,7 @@ POST `/api/v1/score` accepts five integer signals from 1 to 10:
 The API returns a 0–100 estimate and the weights used. It scores only the submitted values; it does not fetch marketplace data or claim to be AI-generated.
 
 ## Public trends source
-GET `/api/v1/trends?country=PK` reads Google's public Trending Now RSS feed. Supported country codes: PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW and BH (13 markets). The response includes trend title, Google's approximate traffic bucket, start time, related news headlines and source links.
+GET `/api/v1/trends?country=PK` reads Google's public Trending Now RSS feed. GET `/api/v1/trends/match?country=PK&product_name=portable%20blender` checks literal English token overlap between a supplied product name and current trend titles; results are discovery hints, not sales evidence. Supported country codes: PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW and BH (13 markets). The response includes trend title, Google's approximate traffic bucket, start time, related news headlines and source links.
 
 Important limitations:
 - The feed returns a small set of broad trending searches, not product-specific search volume.
@@ -37,6 +37,10 @@ Important limitations:
 - A missing trend does not mean a product has no demand.
 - Google may rate-limit or change the feed; the API returns a temporary-unavailable response rather than inventing results.
 - Do not convert this signal directly into a winning-product score without product relevance checks and additional evidence.
+
+## Product-specific trend matching
+
+The product trend matcher compares the supplied English product-name tokens with current Google Trends RSS titles for the selected country. It returns only matches covering at least half of the supplied product-name tokens, with matched terms and a simple overlap percentage. This is a lexical relevance filter, not a Google Trends product query, exact search-volume metric, sales signal or forecast. No match does not imply no demand.
 
 ## Product economics
 POST `/api/v1/product-economics` estimates per-unit profit, margin, ROI and break-even price using the costs and price supplied by the user.
