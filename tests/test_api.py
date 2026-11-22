@@ -238,6 +238,71 @@ def test_google_trends_rss_parser_preserves_source_metrics_and_news():
     assert result[0]["news"][0]["source"] == "Example News"
 
 
+
+def test_product_trend_match_uses_literal_token_overlap_and_excludes_weak_matches():
+    trends = [
+        {"title": "portable blender deals", "approx_traffic": "2000+", "started": "2026-11-10T08:00:00+00:00", "news": []},
+        {"title": "portable electronics news", "approx_traffic": "1000+", "started": None, "news": []},
+        {"title": "football final", "approx_traffic": "5000+", "started": None, "news": []},
+    ]
+    result = api_module.match_product_to_trends("Portable Blender", trends)
+    assert len(result) == 1
+    assert result[0]["title"] == "portable blender deals"
+    assert result[0]["match_score"] == 100
+    assert result[0]["matched_terms"] == ["blender", "portable"]
+    assert result[0]["relevance"] == "strong"
+
+
+def test_product_trend_match_returns_partial_for_half_the_product_terms():
+    result = api_module.match_product_to_trends(
+        "wireless portable blender",
+        [{"title": "portable home goods", "approx_traffic": "200+", "started": None, "news": []}],
+    )
+    assert len(result) == 1
+    assert result[0]["match_score"] == 33.3
+    assert result[0]["relevance"] == "partial"
+
+
+def test_product_trend_match_endpoint_returns_country_source_and_limitations(monkeypatch):
+    xml = """<?xml version="1.0"?>
+    <rss xmlns:ht="https://trends.google.com/trending/rss">
+      <channel><item>
+        <title>portable blender</title>
+        <pubDate>Mon, 10 Nov 2026 08:00:00 +0000</pubDate>
+        <ht:approx_traffic>2000+</ht:approx_traffic>
+      </item></channel>
+    </rss>"""
+
+    class FakeResponse:
+        text = xml
+        def raise_for_status(self):
+            return None
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return False
+        async def get(self, url):
+            assert url == "https://trends.google.com/trending/rss?geo=PK"
+            return FakeResponse()
+
+    monkeypatch.setattr(api_module.httpx, "AsyncClient", FakeClient)
+    response = client.get("/api/v1/trends/match?country=PK&product_name=portable%20blender")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["match_count"] == 1
+    assert payload["matches"][0]["match_score"] == 100
+    assert "does not prove" in payload["data_note"]
+
+
+def test_product_trend_match_endpoint_validates_product_name():
+    response = client.get("/api/v1/trends/match?country=PK&product_name=x")
+    assert response.status_code == 422
+
+
 def test_trends_endpoint_rejects_unsupported_country():
     response = client.get("/api/v1/trends?country=XX")
     assert response.status_code == 422
