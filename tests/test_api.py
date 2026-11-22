@@ -734,6 +734,16 @@ def test_unified_profitability_comparison_joins_market_and_supplier_costs():
     assert response.status_code == 200
     result = response.json()
     assert result["marketplace"]["average_delivered_price"] == 1550
+    marketplace_profit = {
+        item["marketplace"]: item
+        for item in result["supplier_comparisons"][0]["marketplace_profitability"]
+    }
+    assert marketplace_profit["Daraz"]["listing_count"] == 1
+    assert marketplace_profit["Daraz"]["average_delivered_price"] == 1500
+    assert marketplace_profit["Daraz"]["estimated_profit_at_average_price"] == 655
+    assert marketplace_profit["Daraz"]["estimated_margin_at_average_price_percent"] == 43.67
+    assert marketplace_profit["Marketplace B"]["average_delivered_price"] == 1600
+    assert marketplace_profit["Marketplace B"]["estimated_profit_at_average_price"] == 745
     first = result["supplier_comparisons"][0]
     assert first["supplier_id"] == "zambeel"
     assert first["landed_cost_per_unit"] == 620
