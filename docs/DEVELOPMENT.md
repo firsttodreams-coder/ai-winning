@@ -137,6 +137,10 @@ Example request:
 ```
 
 
+## Shortlist to profitability workflow (22 November 2026)
+
+Each product returned by the bilingual batch country trend check now has a "Use in price & profit comparison" action. Selecting it copies only that product name into the existing marketplace comparison form and scrolls to the input. The user must still enter current supplier cost, shipping, planned selling price and observed marketplace listings (or import verified CSV observations). This handoff does not fetch supplier prices or marketplace listings and does not change the batch trend result into verified demand.
+
 ## Product discovery ranking frontend (22 November 2026)
 
 The bilingual browser UI now includes a Product Opportunity Ranking panel connected to the Cloudflare API at `POST /api/v1/product-discovery/rank`. The user selects a country/city in the existing market filters, enters a product name, rates five signals from 1–10, and may attach one source URL and source name. The UI displays the weighted score, evidence-coverage label and evidence count.
