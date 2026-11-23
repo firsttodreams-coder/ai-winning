@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 
 import api.main as api_module
@@ -866,6 +868,7 @@ def test_unified_profitability_rejects_invalid_catalog_match_similarity():
 
 
 def test_product_discovery_ranks_candidates_and_reports_evidence_coverage():
+    fresh_capture = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
     response = client.post("/api/v1/product-discovery/rank", json={
         "candidates": [
             {
@@ -876,8 +879,8 @@ def test_product_discovery_ranks_candidates_and_reports_evidence_coverage():
                 "currency": "PKR",
                 "signals": {"demand": 8, "competition": 6, "margin": 7, "shipping": 8, "trend": 7},
                 "evidence": [
-                    {"evidence_type": "marketplace_listing", "source_name": "Daraz", "source_url": "https://www.daraz.pk/item/1", "captured_at": "2026-11-22T03:00:00Z"},
-                    {"evidence_type": "supplier_quote", "source_name": "Supplier", "source_url": "https://supplier.example/item/1", "captured_at": "2026-11-22T03:30:00Z"},
+                    {"evidence_type": "marketplace_listing", "source_name": "Daraz", "source_url": "https://www.daraz.pk/item/1", "captured_at": fresh_capture},
+                    {"evidence_type": "supplier_quote", "source_name": "Supplier", "source_url": "https://supplier.example/item/1", "captured_at": fresh_capture},
                     {"evidence_type": "search_interest", "source_name": "Trends", "source_url": "https://trends.google.com/trends/explore"}
                 ]
             },
