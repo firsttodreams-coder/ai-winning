@@ -18,6 +18,7 @@ Included:
 - Transparent manual opportunity scoring using demand, competition, margin, shipping, and trend ratings
 - Personal product research workspace: evaluate and save product candidates with your own evidence URL, market, cost inputs, weighted score, and estimated per-unit profit
 - Research records saved locally in the current browser, with CSV export and delete controls
+- Supplier and marketplace product catalogues can be stored separately in browser-local IndexedDB, filtered by selected country/currency and reused for matching without re-uploading; marketplace catalogue CSV export and clear controls are available
 - Country-aware free research shortcuts for Google Trends, Daraz, Amazon regional stores, eBay sold listings, and web search; links open external sites and do not claim to import live metrics
 - Market research workspace that builds category/country search links and product-specific supplier searches for Alibaba, AliExpress, CJdropshipping, 1688, Daraz, Amazon and eBay
 - Curated local wholesale and dropshipping supplier directory focused on Pakistan, UAE and Saudi Arabia, with supplier website links, service-model labels, and English/Urdu notes; listings are clearly presented as research leads, not endorsements or verified live offers
@@ -58,6 +59,10 @@ A first FastAPI scoring service is available in `api/main.py`.
 - `POST /api/v1/catalog/match` — suggest supplier-to-marketplace product matches using exact SKU first and conservative title similarity; conflicting numeric model/size/pack variants are excluded and every suggestion requires human review
 
 Run it locally with `pip install -r requirements.txt` followed by `uvicorn api.main:app --reload`. See `docs/DEVELOPMENT.md` for details. The API now reads Google's public country-level Trending Now RSS feed for 13 supported markets (PK, US, GB, AE, SA, IN, CA, AU, DE, OM, QA, KW, BH). This is broad search-trend evidence only; it is not product-specific demand, marketplace sales, competitor counts, or verified buying intent. The API does not yet fetch live marketplace prices or generate AI recommendations. Cloudflare deployment instructions are in `docs/CLOUDFLARE_DEPLOY.md`.
+
+## Local catalogue persistence (23 November 2026)
+
+Supplier and marketplace catalogue uploads from the matcher can be saved in separate IndexedDB object stores on the current browser. The database upgrade preserves existing supplier records and adds a marketplace store. Saved catalogues can be loaded into matching only for the currently selected country and currency; marketplace records can be refreshed, exported or cleared. This is device-local storage, not account sync or a live supplier/marketplace connection. Storage failures leave the current-session preview usable and display a warning.
 
 ## Next development milestones
 
