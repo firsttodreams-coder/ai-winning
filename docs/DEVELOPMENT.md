@@ -163,3 +163,13 @@ The panel does not invent products, sales counts, forecasts or marketplace data.
 - Duplicate product_id values within one supplier CSV are rejected as row-level errors; the first valid row is retained so later duplicate rows cannot silently overwrite it in browser storage.
 - The normalized preview is rendered even if browser IndexedDB is unavailable or quota-limited. The interface explicitly warns that the preview was not saved on that device.
 - Saved supplier catalogues use browser-local IndexedDB only. They are not synced to an account or server, and remain user-supplied evidence rather than a verified supplier feed.
+
+
+## Marketplace catalogue persistence (23 November 2026)
+
+- The local IndexedDB database is upgraded from version 1 to version 2, preserving the existing `supplier-products` store and adding a separate `marketplace-products` store.
+- Supplier and marketplace catalogue CSV uploads from the matching panel are saved locally with country, currency and save timestamps.
+- Saved catalogues can be loaded into matching without re-uploading. Loading filters by the currently selected country and currency to avoid mixing market/currency records.
+- Marketplace saved records can be refreshed, exported as CSV or cleared. Duplicate product IDs within one catalogue file are rejected before persistence to prevent silent record overwrites.
+- If browser storage is unavailable or quota-limited, parsed rows remain available in the current session and the UI reports that persistence failed.
+- This feature is browser-local only; it does not synchronize devices or verify supplier/marketplace prices, sales or stock.
