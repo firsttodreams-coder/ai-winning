@@ -137,7 +137,7 @@ def test_marketplace_catalog_storage_failure_keeps_imported_rows_available():
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
     start = html.index("async function saveMarketplaceCatalogSafely(")
-    end = html.index("\\nconst supplierCatalogEscape", start)
+    end = html.index("\nconst supplierCatalogEscape", start)
     helper = html[start:end]
     script = """
 let shouldFail = false;
