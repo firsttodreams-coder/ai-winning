@@ -105,3 +105,61 @@ const assert = require("node:assert/strict");
 """
     result = subprocess.run([node, "-e", script], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_marketplace_catalog_is_saved_locally_and_reused_for_matching():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+
+    assert 'MARKETPLACE_CATALOG_STORE="marketplace-products"' in html
+    assert 'indexedDB.open(SUPPLIER_CATALOG_DB,CATALOG_DB_VERSION)' in html
+    assert "CATALOG_DB_VERSION=2" in html
+    assert 'db.createObjectStore(MARKETPLACE_CATALOG_STORE,{keyPath:"record_id"})' in html
+    assert 'saveMarketplaceCatalogSafely(rows,savedAt,country,currency)' in html
+    assert 'loadSavedCatalogForMatching("marketplace")' in html
+    assert 'loadSavedCatalogForMatching("supplier")' in html
+    assert 'id="refreshSavedMarketplaceCatalog"' in html
+    assert 'id="exportSavedMarketplaceCatalog"' in html
+    assert 'id="clearSavedMarketplaceCatalog"' in html
+    assert "row.country===country&&row.currency===currency" in html
+
+
+def test_marketplace_catalog_storage_failure_keeps_imported_rows_available():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is required for the marketplace catalog storage helper test")
+
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+    start = html.index("async function saveMarketplaceCatalogSafely(")
+    end = html.index("\\nconst supplierCatalogEscape", start)
+    helper = html[start:end]
+    script = """
+let shouldFail = false;
+let captured = null;
+async function marketplaceCatalogStore(...args) {
+    captured = args;
+    if (shouldFail) throw new Error("storage quota exceeded");
+}
+const console = { warn: () => {} };
+const assert = require("node:assert/strict");
+""" + helper + """
+(async () => {
+    const rows = [{product_id:"N-01",title:"Lamp",source:"noon"}];
+    assert.equal(await saveMarketplaceCatalogSafely(rows,"2026-11-23T10:00:00Z","SA","SAR"),true);
+    assert.equal(captured[0],"readwrite");
+    assert.equal(captured[2][0].record_id,"noon::SA::N-01");
+    assert.equal(captured[2][0].country,"SA");
+    assert.equal(captured[2][0].currency,"SAR");
+    assert.equal(captured[2][0].saved_at,"2026-11-23T10:00:00Z");
+    shouldFail = true;
+    assert.equal(await saveMarketplaceCatalogSafely(rows,"2026-11-23T10:00:00Z","SA","SAR"),false);
+})().catch(error => { process.stderr.write(String(error)); process.exitCode = 1; });
+"""
+    result = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
