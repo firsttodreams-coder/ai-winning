@@ -72,7 +72,7 @@ def test_supplier_catalog_preview_survives_browser_storage_failure():
 
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
-    start = html.index("async function saveSupplierCatalogSafely(")
+    start = html.index("function buildCatalogImportSnapshot(")
     end = html.index("\nconst supplierCatalogEscape", start)
     helper = html[start:end]
     handler_start = html.index('$("runSupplierCatalogImport").addEventListener')
@@ -140,7 +140,7 @@ def test_marketplace_catalog_storage_failure_keeps_imported_rows_available():
 
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
-    start = html.index("async function saveMarketplaceCatalogSafely(")
+    start = html.index("function buildCatalogImportSnapshot(")
     end = html.index("\nconst supplierCatalogEscape", start)
     helper = html[start:end]
     script = """
