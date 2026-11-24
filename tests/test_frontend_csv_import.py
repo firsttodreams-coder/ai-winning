@@ -186,7 +186,7 @@ def test_catalog_import_snapshot_reports_new_and_changed_prices():
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
     start = html.index("function buildCatalogImportSnapshot(")
-    end = html.index("\\nfunction catalogImportSummaryText", start)
+    end = html.index("\nfunction catalogImportSummaryText", start)
     helper = html[start:end]
     script = """
 const assert = require("node:assert/strict");
