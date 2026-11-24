@@ -829,8 +829,8 @@ function buildCatalogImportSnapshot(rows,existingRows,kind,savedAt){
  const records=rows.map(row=>{
   const source=kind==="supplier"?(row.supplier_id||row.source||"supplier"):(row.source||"marketplace");
   const recordId=[source,row.country,row.product_id].join("::");
-  const previous=existingById.get(recordId),oldPrice=previous?Number(previous[priceField]):NaN,newPrice=Number(row[priceField]);
-  const comparable=Boolean(previous)&&Number.isFinite(oldPrice)&&Number.isFinite(newPrice);
+  const previous=existingById.get(recordId),oldRaw=previous?.[priceField],newRaw=row[priceField],oldPrice=Number(oldRaw),newPrice=Number(newRaw);
+  const comparable=Boolean(previous)&&oldRaw!==null&&oldRaw!==undefined&&String(oldRaw).trim()!==""&&newRaw!==null&&newRaw!==undefined&&String(newRaw).trim()!==""&&Number.isFinite(oldPrice)&&Number.isFinite(newPrice);
   const changed=comparable&&oldPrice!==newPrice;
   let priceChangeStatus;
   if(!previous){summary.newCount++;priceChangeStatus="new";}
