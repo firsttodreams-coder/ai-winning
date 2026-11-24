@@ -173,3 +173,11 @@ The panel does not invent products, sales counts, forecasts or marketplace data.
 - Marketplace saved records can be refreshed, exported as CSV or cleared. Duplicate product IDs within one catalogue file are rejected before persistence to prevent silent record overwrites.
 - If browser storage is unavailable or quota-limited, parsed rows remain available in the current session and the UI reports that persistence failed.
 - This feature is browser-local only; it does not synchronize devices or verify supplier/marketplace prices, sales or stock.
+
+
+## Saved catalogue price-change review (24 November 2026)
+
+- Each supplier or marketplace catalogue import compares incoming product records with the matching record already stored in this browser's IndexedDB.
+- The import summary separates new records, records with a changed comparable price, records with the same price, and existing records whose previous price cannot be compared.
+- The saved record keeps the immediately previous price and its save timestamp, plus the absolute and percentage change when calculable. The saved catalogue view displays this last-import comparison.
+- This is a one-step previous-price snapshot, not a complete historical price time series. It compares user-supplied CSV/API-imported observations only; it does not independently verify a seller, live price, stock, or sales.
