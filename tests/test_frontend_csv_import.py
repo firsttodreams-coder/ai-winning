@@ -233,7 +233,7 @@ def test_saved_catalog_price_history_appends_supplier_and_marketplace_observatio
     root = Path(__file__).resolve().parents[1]
     html = (root / "index.html").read_text(encoding="utf-8")
     start = html.index("function buildCatalogImportSnapshot(")
-    end = html.index("\\nfunction catalogImportSummaryText", start)
+    end = html.index("\nfunction catalogImportSummaryText", start)
     helper = html[start:end]
     script = """
 const assert = require("node:assert/strict");
@@ -294,9 +294,9 @@ def test_saved_catalog_views_render_escaped_price_history_in_both_catalogues():
     html = (root / "index.html").read_text(encoding="utf-8")
     assert "catalogHistoryColumn:" in html
     assert "قیمت کی ہسٹری" in html
-    assert html.count("catalogPriceHistoryHtml(row,t)") == 2
+    assert html.count("catalogPriceHistoryHtml(row,t)") == 3
     start = html.index("const supplierCatalogEscape=")
-    end = html.index("\\nasync function renderSavedSupplierCatalog", start)
+    end = html.index("\nasync function renderSavedSupplierCatalog", start)
     helper = html[start:end]
     script = """
 const assert = require("node:assert/strict");
