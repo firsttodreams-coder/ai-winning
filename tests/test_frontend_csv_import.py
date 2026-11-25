@@ -218,3 +218,107 @@ assert.equal(marketplace.records[0].price_change_percent,-10);
 """
     result = subprocess.run([node, "-e", script], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_saved_catalog_price_history_appends_supplier_and_marketplace_observations():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is required for catalogue price history tests")
+
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+    start = html.index("function buildCatalogImportSnapshot(")
+    end = html.index("\\nfunction catalogImportSummaryText", start)
+    helper = html[start:end]
+    script = """
+const assert = require("node:assert/strict");
+""" + helper + """
+const oldSupplier = [{
+  record_id:"zambeel::PK::A",product_cost:100,currency:"PKR",
+  captured_at:"2026-11-22T09:00:00Z",saved_at:"2026-11-22T10:00:00Z"
+}];
+const first = buildCatalogImportSnapshot([{
+  supplier_id:"zambeel",country:"PK",product_id:"A",product_cost:125,
+  currency:"PKR",captured_at:"2026-11-23T09:00:00Z"
+}],oldSupplier,"supplier","2026-11-23T10:00:00Z");
+assert.equal(first.records[0].price_history.length,2);
+assert.deepStrictEqual(first.records[0].price_history.map(item=>item.price),[100,125]);
+assert.equal(first.records[0].price_history[0].saved_at,"2026-11-22T10:00:00Z");
+assert.equal(first.records[0].price_history[1].captured_at,"2026-11-23T09:00:00Z");
+const second = buildCatalogImportSnapshot([{
+  supplier_id:"zambeel",country:"PK",product_id:"A",product_cost:125,
+  currency:"PKR",captured_at:"2026-11-24T09:00:00Z"
+}],first.records,"supplier","2026-11-24T10:00:00Z");
+assert.equal(second.records[0].price_history.length,3);
+assert.deepStrictEqual(second.records[0].price_history.map(item=>item.price),[100,125,125]);
+const oldMarketplace = [{
+  record_id:"noon::SA::X",marketplace_price:200,currency:"SAR",
+  saved_at:"2026-11-22T10:00:00Z",
+  price_history:[
+    {price:190,currency:"SAR",saved_at:"2026-11-21T10:00:00Z"},
+    {price:200,currency:"SAR",saved_at:"2026-11-22T10:00:00Z"}
+  ]
+}];
+const marketplace = buildCatalogImportSnapshot([{
+  source:"noon",country:"SA",product_id:"X",marketplace_price:180,currency:"SAR",
+  captured_at:"2026-11-23T09:00:00Z"
+}],oldMarketplace,"marketplace","2026-11-23T10:00:00Z");
+assert.equal(marketplace.records[0].price_history.length,3);
+assert.deepStrictEqual(marketplace.records[0].price_history.map(item=>item.price),[190,200,180]);
+assert.equal(marketplace.records[0].price_change_percent,-10);
+const missing = buildCatalogImportSnapshot([{
+  source:"noon",country:"SA",product_id:"X",marketplace_price:null,currency:"SAR"
+}],marketplace.records,"marketplace","2026-11-24T10:00:00Z");
+assert.equal(missing.records[0].price_history.length,3);
+"""
+    result = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_saved_catalog_views_render_escaped_price_history_in_both_catalogues():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is required for catalogue price history rendering tests")
+
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+    assert "catalogHistoryColumn:" in html
+    assert "قیمت کی ہسٹری" in html
+    assert html.count("catalogPriceHistoryHtml(row,t)") == 2
+    start = html.index("const supplierCatalogEscape=")
+    end = html.index("\\nasync function renderSavedSupplierCatalog", start)
+    helper = html[start:end]
+    script = """
+const assert = require("node:assert/strict");
+""" + helper + """
+const translations = {
+  catalogHistoryEntries:"{count} price observations",
+  catalogHistoryEmpty:"No price history recorded yet.",
+  catalogHistoryImported:"Imported"
+};
+const output = catalogPriceHistoryHtml({
+  currency:"PKR",
+  price_history:[{
+    price:100,currency:"PKR",
+    captured_at:"<script>alert(1)</script>",
+    saved_at:"2026-11-23T10:00:00Z"
+  }]
+},translations);
+assert.match(output,/<details>/);
+assert.match(output,/1 price observations/);
+assert.match(output,/&lt;script&gt;/);
+assert.doesNotMatch(output,/<script>/);
+assert.match(catalogPriceHistoryHtml({price_history:[]},translations),/No price history recorded yet/);
+"""
+    result = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr

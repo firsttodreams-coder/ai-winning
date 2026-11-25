@@ -175,9 +175,10 @@ The panel does not invent products, sales counts, forecasts or marketplace data.
 - This feature is browser-local only; it does not synchronize devices or verify supplier/marketplace prices, sales or stock.
 
 
-## Saved catalogue price-change review (24 November 2026)
+## Saved catalogue price history (25 November 2026)
 
-- Each supplier or marketplace catalogue import compares incoming product records with the matching record already stored in this browser's IndexedDB.
-- The import summary separates new records, records with a changed comparable price, records with the same price, and existing records whose previous price cannot be compared.
-- The saved record keeps the immediately previous price and its save timestamp, plus the absolute and percentage change when calculable. The saved catalogue view displays this last-import comparison.
-- This is a one-step previous-price snapshot, not a complete historical price time series. It compares user-supplied CSV/API-imported observations only; it does not independently verify a seller, live price, stock, or sales.
+- Each supplier and marketplace catalogue record now keeps an append-only local price_history array. Every valid price observed on a later import is added with its currency, optional source captured_at timestamp, and local import saved_at timestamp.
+- Existing version-2 records without a history array are upgraded lazily: the previous saved price is added as the first historical observation when the next import arrives, then the new observation is appended.
+- Re-importing an unchanged price at a later time still creates a new observation, so the history can show how long a submitted price remained unchanged. Repeating the same price at the same import timestamp does not create a duplicate entry.
+- Saved supplier and marketplace catalogue views expose the complete stored observation list in an expandable history section. Dynamic timestamps, currency and price values are HTML-escaped before rendering.
+- Price history remains local to this browser's IndexedDB and grows with imports until the user clears the catalogue or browser storage. It is based only on user-supplied CSV/import observations; it does not independently verify seller identity, live prices, stock, sales or continuous market history.
