@@ -295,6 +295,10 @@ def test_saved_catalog_views_render_escaped_price_history_in_both_catalogues():
     assert "catalogHistoryColumn:" in html
     assert "قیمت کی ہسٹری" in html
     assert html.count("catalogPriceHistoryHtml(row,t)") == 3
+    marketplace_start = html.index("async function renderSavedMarketplaceCatalog")
+    marketplace_end = html.index('$("refreshSavedSupplierCatalog")', marketplace_start)
+    marketplace_renderer = html[marketplace_start:marketplace_end]
+    assert "catalogHistoryColumn" in marketplace_renderer
     start = html.index("const supplierCatalogEscape=")
     end = html.index("\nasync function renderSavedSupplierCatalog", start)
     helper = html[start:end]
