@@ -326,3 +326,73 @@ assert.match(catalogPriceHistoryHtml({price_history:[]},translations),/No price 
 """
     result = subprocess.run([node, "-e", script], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_saved_catalog_price_history_charts_group_valid_observations_by_currency_and_escape_labels():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is required for catalogue price history chart tests")
+
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+    start = html.index("const supplierCatalogEscape=")
+    end = html.index("\nasync function renderSavedSupplierCatalog", start)
+    helper = html[start:end]
+    script = """
+const assert = require("node:assert/strict");
+""" + helper + """
+const translations = {
+  catalogHistoryEntries:"{count} price observations",
+  catalogHistoryEmpty:"No price history recorded yet.",
+  catalogHistoryImported:"Imported",
+  catalogHistoryChartTitle:"Price trend",
+  catalogHistoryChartNeedsTwo:"A chart needs at least two valid observations in the same currency."
+};
+const output = catalogPriceHistoryHtml({
+  currency:"PKR",
+  price_history:[
+    {price:100,currency:"PKR",saved_at:"2026-11-20T10:00:00Z"},
+    {price:125,currency:"PKR",saved_at:"2026-11-21T10:00:00Z"},
+    {price:150,currency:"SAR",saved_at:"2026-11-22T10:00:00Z"},
+    {price:140,currency:"SAR",saved_at:"2026-11-23T10:00:00Z"},
+    {price:null,currency:"PKR",saved_at:"2026-11-24T10:00:00Z"},
+    {price:"not-a-price",currency:"PKR",saved_at:"2026-11-25T10:00:00Z"}
+  ]
+},translations);
+assert.equal((output.match(/class="catalog-history-chart"/g)||[]).length,2);
+assert.equal((output.match(/class="point"/g)||[]).length,4);
+assert.match(output,/Price trend · PKR/);
+assert.match(output,/Price trend · SAR/);
+assert.doesNotMatch(output,/NaN/);
+const one = catalogPriceHistoryHtml({
+  currency:"PKR",
+  price_history:[{price:10,currency:"PKR",saved_at:"2026-11-20T10:00:00Z"}]
+},translations);
+assert.match(one,/catalog-history-chart-note/);
+assert.doesNotMatch(one,/<svg/);
+const mixed = catalogPriceHistoryHtml({
+  price_history:[
+    {price:10,currency:"PKR",saved_at:"2026-11-20T10:00:00Z"},
+    {price:20,currency:"SAR",saved_at:"2026-11-21T10:00:00Z"}
+  ]
+},translations);
+assert.match(mixed,/same currency/);
+assert.doesNotMatch(mixed,/<svg/);
+const maliciousCurrency = '<img src=x onerror=alert(1)>';
+const escaped = catalogPriceHistoryHtml({
+  price_history:[
+    {price:1,currency:maliciousCurrency,saved_at:"2026-11-20T10:00:00Z"},
+    {price:2,currency:maliciousCurrency,saved_at:"2026-11-21T10:00:00Z"}
+  ]
+},translations);
+assert.doesNotMatch(escaped,/<img/);
+assert.match(escaped,/&lt;img/);
+"""
+    result = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+

@@ -182,3 +182,11 @@ The panel does not invent products, sales counts, forecasts or marketplace data.
 - Re-importing an unchanged price at a later time still creates a new observation, so the history can show how long a submitted price remained unchanged. Repeating the same price at the same import timestamp does not create a duplicate entry.
 - Saved supplier and marketplace catalogue views expose the complete stored observation list in an expandable history section. Dynamic timestamps, currency and price values are HTML-escaped before rendering.
 - Price history remains local to this browser's IndexedDB and grows with imports until the user clears the catalogue or browser storage. It is based only on user-supplied CSV/import observations; it does not independently verify seller identity, live prices, stock, sales or continuous market history.
+
+## Saved catalogue price trend charts (27 November 2026)
+
+- Supplier and marketplace saved-price histories now render a responsive SVG line chart inside each expandable history panel.
+- Observations are grouped by currency; prices from different currencies are never plotted on the same line or scale.
+- A chart is shown only when a currency group contains at least two finite, non-empty price observations. Null, blank and non-numeric values are excluded from chart points but remain visible in the underlying history list.
+- Chart labels and point details are HTML-escaped. The chart uses only user-imported history snapshots; it is not a forecast, a live feed, or independent evidence of sales, stock or market prices.
+
