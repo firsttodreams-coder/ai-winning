@@ -396,3 +396,46 @@ assert.match(escaped,/&lt;img/);
     result = subprocess.run([node, "-e", script], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
 
+def test_catalog_csv_parser_receives_supplier_or_marketplace_kind():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is required for catalogue CSV parser tests")
+
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "index.html").read_text(encoding="utf-8")
+    parser_start = html.index("function parseSupplierQuoteCsv(source){")
+    parser_end = html.index('$("downloadMarketCsvTemplate")', parser_start)
+    catalog_start = html.index("function parseCatalogFile(text,which){")
+    catalog_end = html.index("\nasync function loadCatalogCsv", catalog_start)
+    parser = html[parser_start:parser_end]
+    catalog_parser = html[catalog_start:catalog_end]
+    script = parser + "\n" + catalog_parser + """
+const assert = require("node:assert/strict");
+const supplierCsv = [
+  "product_id,title,supplier_id,supplier_name,product_cost,shipping_cost,moq,source_url,captured_at",
+  "S-1,Lamp,zambeel,Zambeel,120,10,1,https://example.com/p,2026-11-28T10:00:00Z"
+].join("\\n");
+const supplier = parseCatalogFile(supplierCsv, "supplier");
+assert.equal(supplier.length, 1);
+assert.equal(supplier[0].supplier_id, "zambeel");
+assert.equal(supplier[0].product_cost, 120);
+assert.equal(supplier[0].shipping_cost, 10);
+const marketplaceCsv = [
+  "product_id,title,source,marketplace_price,marketplace_shipping_cost,marketplace_listing_url,marketplace_captured_at",
+  "M-1,Lamp,noon,180,5,https://example.com/item,2026-11-28T10:00:00Z"
+].join("\\n");
+const marketplace = parseCatalogFile(marketplaceCsv, "marketplace");
+assert.equal(marketplace.length, 1);
+assert.equal(marketplace[0].source, "noon");
+assert.equal(marketplace[0].marketplace_price, 180);
+assert.equal(marketplace[0].marketplace_shipping_cost, 5);
+assert.equal(marketplace[0].product_cost, undefined);
+"""
+    result = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "parseCatalogFile(await file.text(),which)" in html
