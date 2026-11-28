@@ -945,7 +945,7 @@ $("runSupplierCatalogImport").addEventListener("click",async()=>{
 renderSavedSupplierCatalog();
 renderSavedMarketplaceCatalog();
 let supplierCatalogRows=null,marketCatalogRows=null;
-function parseCatalogFile(text){
+function parseCatalogFile(text,which){
  const rows=parseSupplierQuoteCsv(text.replace(/^\ufeff/,""));
  if(rows.length<2)throw new Error("CSV has no product rows");
  const headers=rows[0].map(value=>value.trim().toLowerCase());
@@ -991,7 +991,7 @@ async function loadCatalogCsv(inputId,which){
  const input=$(inputId),file=input.files&&input.files[0];if(!file)return;
  const status=$("catalogMatchStatus"),country=$("country").value,currency=$("econCurrency").value,t=translations[language];
  try{
-  const parsed=parseCatalogFile(await file.text()),rows=parsed.map(row=>({...row,country,currency})),savedAt=new Date().toISOString();
+  const parsed=parseCatalogFile(await file.text(),which),rows=parsed.map(row=>({...row,country,currency})),savedAt=new Date().toISOString();
   if(which==="supplier"){
    supplierCatalogRows=rows;
    const saved=await saveSupplierCatalogSafely(rows,savedAt);
